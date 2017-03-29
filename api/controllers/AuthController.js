@@ -41,8 +41,8 @@ module.exports = class AuthController extends Controller {
           else {
             let redirect = this.app.config.proxyPassport.redirect.login
 
-            if (req.query.redirect) {
-              redirect = req.query.redirect
+            if (req.body.redirect || req.query.redirect) {
+              redirect = req.body.redirect || req.query.redirect
             }
             // Mark the session as authenticated to work with default Sails sessionAuth.js policy
             req.session.authenticated = true
@@ -87,8 +87,8 @@ module.exports = class AuthController extends Controller {
     req.logout()
 
     let redirect = this.app.config.proxyPassport.redirect.logout
-    if (req.query.redirect) {
-      redirect = req.query.redirect
+    if (req.body.redirect || req.query.redirect) {
+      redirect = req.body.redirect || req.query.redirect
     }
     // mark the user as logged out for auth purposes
     if (req.session) {

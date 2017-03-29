@@ -40,6 +40,20 @@ describe('PassportService', () => {
       })
   })
 
+  it('should insert a user on /auth/local/register and redirect to new value', (done) => {
+    request
+      .post('/auth/local/register')
+      .set('Accept', 'application/json') //set header for this test
+      .send({username: 'scott', password: 'adminadmin', redirect: '/hello'})
+      .expect(200)
+      .end((err, res) => {
+        assert.equal(res.body.redirect, '/hello')
+        assert.notEqual(res.body.user.id, null)
+        assert.equal(res.body.user.username, 'scott')
+        done(err)
+      })
+  })
+
   it('should return an error on missing passport for registration on /auth/local/register', (done) => {
     request
       .post('/auth/local/register')
@@ -98,7 +112,7 @@ describe('PassportService', () => {
         done(err)
       })
   })
-  it('should retreive data on / with JWT token', (done) => {
+  it('should retrieve data on / with JWT token', (done) => {
     request
       .get('/')
       .set('Authorization', `JWT ${token}`)
