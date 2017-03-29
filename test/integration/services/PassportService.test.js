@@ -15,7 +15,7 @@ describe('PassportService', () => {
       .expect(200)
       .end((err, res) => {
         assert.equal(res.body.redirect, '/')
-        assert.notEqual(res.body.user.id,null)
+        assert.notEqual(res.body.user.id, null)
         user = res.body.user
         token = res.body.token
         done(err)
@@ -74,6 +74,7 @@ describe('PassportService', () => {
       .send({email: 'test@test.te', password: 'adminadmin'})
       .expect(200)
       .end((err, res) => {
+        // console.log(res.body)
         assert.equal(res.body.redirect, '/')
         assert.notEqual(res.body.user.id,null)
         assert.equal(res.body.user.username, 'jaumard')

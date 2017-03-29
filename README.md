@@ -95,8 +95,11 @@ module.exports = {
   },
   bcrypt: require('bcryptjs'), // custom bcrypt version if you prefer the native one instead of full js
   //Called when user is logged, before returning the json response
-  onUserLogged: (app, user) => {
-      return Promise.resolve(user)
+  onUserLogin: (req, app, user) => {
+    return Promise.resolve(user)
+  },
+  onUserLogout: (req, app, user) => {
+    return Promise.resolve(user)
   },
   //Optional: can be used to merge data from all third party profiles and the default user properties.
   mergeThirdPartyProfile: (user, profile) => {

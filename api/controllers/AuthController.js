@@ -1,14 +1,15 @@
 'use strict'
 
 const Controller = require('trails/controller')
-
+// const _ = require('lodash')
 
 module.exports = class AuthController extends Controller {
 
   provider(req, res) {
-    this.app.services.PassportService.endpoint(req, res, req.params.provider).catch(e => {
-      res.serverError(e)
-    })
+    this.app.services.PassportService.endpoint(req, res, req.params.provider)
+      .catch(e => {
+        res.serverError(e)
+      })
   }
 
   callback(req, res) {
@@ -86,7 +87,6 @@ module.exports = class AuthController extends Controller {
     req.logout()
 
     let redirect = this.app.config.proxyPassport.redirect.logout
-
     if (req.query.redirect) {
       redirect = req.query.redirect
     }
@@ -95,11 +95,22 @@ module.exports = class AuthController extends Controller {
       req.session.authenticated = false
     }
 
-    if (req.wantsJSON) {
-      res.json({redirect: redirect})
-    }
-    else {
-      res.redirect(redirect)
-    }
+    this.app.services.PassportService.logout(req)
+      .then(() => {
+        if (req.wantsJSON) {
+          res.json({redirect: redirect})
+        }
+        else {
+          res.redirect(redirect)
+        }
+      })
+      .catch(err => {
+        if (req.wantsJSON) {
+          res.json({redirect: redirect})
+        }
+        else {
+          res.redirect(redirect)
+        }
+      })
   }
 }

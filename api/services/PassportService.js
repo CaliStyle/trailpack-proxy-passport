@@ -1,3 +1,4 @@
+/* eslint no-console: [0] */
 'use strict'
 
 const Service = require('trails/service')
@@ -102,7 +103,7 @@ module.exports = class PassportService extends Service {
           }
         }
 
-        this.login(id, req.body.identifier || req.body[id], req.body.password)
+        this.login(req, id, req.body.identifier || req.body[id], req.body.password)
           .then(user => next(null, user))
           .catch(next)
       }
@@ -119,10 +120,13 @@ module.exports = class PassportService extends Service {
 
   /**
    * Register the user
-   * @param userInfos to save
-   * @returns {Promise}
+   * @param userInfos
+   * @returns {*}
    */
   register(userInfos) {
+    const User = this.app.orm['User']
+    const Passport = this.app.orm['Passport']
+
     const password = userInfos.password
     delete userInfos.password
 
@@ -132,16 +136,18 @@ module.exports = class PassportService extends Service {
       return Promise.reject(err)
     }
 
-    return this.app.services.FootprintService.create('user', userInfos).then(user => {
-      return this.app.services.FootprintService.createAssociation('user', user.id, 'passports', {
-        protocol: 'local',
-        password: password
-      })
-        .then(passport => Promise.resolve(user)).catch(err => {
-          return this.app.services.FootprintService.destroy('user', user.id)
-          .then(() => Promise.reject(err))
-          .catch(() => Promise.reject(err))
-        })
+    userInfos.passports = {
+      protocol: 'local',
+      password: password
+    }
+
+    return User.create(userInfos, {
+      include: [
+        {
+          model: Passport,
+          as: 'passports'
+        }
+      ]
     })
   }
 
@@ -152,14 +158,18 @@ module.exports = class PassportService extends Service {
    * @returns {Promise}
    */
   updateLocalPassword(user, password) {
-    const criteria = (user._id) ? {_id: user.id} : {id: user.id} //eslint-disable-line
-    // const User = this.app.orm['User']
-    // const Passport = this.app.orm['Passport']
-
-    return this.app.services.FootprintService.find('user', criteria, {populate: 'passports'})
+    const User = this.app.orm['User']
+    const Passport = this.app.orm['Passport']
+    return User.findById(user.id, {
+      include: [{
+        model: Passport,
+        as: 'passports',
+        required: true
+      }]
+    })
       .then(user => {
-        if (user && user.length > 0) {
-          user = user[0]
+        if (user) {
+          // user = user[0]
           if (user.passports) {
             const localPassport = user.passports.find(passportObj => passportObj.protocol === 'local')
             if (localPassport) {
@@ -208,7 +218,8 @@ module.exports = class PassportService extends Service {
           }, {
             include: [
               {
-                model: User
+                model: User,
+                required: true
               }
             ]
           })
@@ -222,22 +233,24 @@ module.exports = class PassportService extends Service {
    * @param next callback to call after
    */
   disconnect(req, next) {
+    const Passport = this.app.orm['Passport']
     const user = req.user
     const provider = req.params.provider || 'local'
     const query = {}
 
     query.user = user.id
     query[provider === 'local' ? 'protocol' : 'provider'] = provider
-
-    return this.app.services.FootprintService.find('passport', query).then(passport => {
-      if (passport) {
-        return this.app.services.FootprintService.destroy('passport', passport.id)
+    return Passport.findOne(query)
+      .then(passport => {
+        if (passport) {
+          return passport.destroy()
           .then(passport => next(null, user))
-      }
-      else {
-        throw new Error('E_USER_NO_PASSWORD')
-      }
-    }).catch(next)
+        }
+        else {
+          throw new Error('E_USER_NO_PASSWORD')
+        }
+      })
+      .catch(next)
   }
 
   /**
@@ -246,36 +259,62 @@ module.exports = class PassportService extends Service {
    * @param password of the user
    * @returns {Promise} promise for next calls
    */
-  login(fieldName, identifier, password) {
+  login(req, fieldName, identifier, password) {
+    const User = this.app.orm['User']
+    const Passport = this.app.orm['Passport']
     const criteria = {}
 
     criteria[fieldName] = identifier
 
-    return this.app.services.FootprintService.find('User', criteria, {populate: 'passports'})
+    return User.findOne({where: criteria,
+      include: [{
+        model: Passport,
+        as: 'passports',
+        required: true
+      }]
+    })
+    // return this.app.services.FootprintService.find('User', criteria, {populate: 'passports'})
       .then(user => {
-        if (!user || !user[0]) {
+        if (!user) {
           throw new Error('E_USER_NOT_FOUND')
         }
-        user = user[0]
+        // user = user[0]
 
         const passport = user.passports.find(passportObj => passportObj.protocol === 'local')
+
         if (!passport) {
           throw new Error('E_USER_NO_PASSWORD')
         }
 
-        const onUserLogged = _.get(this.app, 'config.proxyPassport.onUserLogged')
+        const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
 
         return new Promise((resolve, reject) => {
           this.app.config.proxyPassport.bcrypt.compare(password, passport.password, (err, valid) => {
             if (err) {
               return reject(err)
             }
-
-            return valid
-              ? resolve(onUserLogged(this.app, user))
-              : reject(new Error('E_WRONG_PASSWORD'))
+            if (valid) {
+              if (Array.isArray(onUserLogin)) {
+                return resolve(Promise.all(onUserLogin.map(func => func(req, this.app, user))))
+              }
+              else {
+                return resolve(Promise.resolve(onUserLogin(req, this.app, user)))
+              }
+            }
+            else {
+              return reject(new Error('E_WRONG_PASSWORD'))
+            }
           })
         })
       })
+  }
+  logout(req) {
+    const onUserLogout = _.get(this.app, 'config.proxyPassport.onUserLogout')
+    if (Array.isArray(onUserLogout)) {
+      return Promise.all(onUserLogout.map(func => func(req, this.app)))
+    }
+    else {
+      return Promise.resolve(onUserLogout(req, this.app))
+    }
   }
 }

@@ -58,12 +58,12 @@ const App = {
       }
     },
     proxyPassport: {
-      onUserLogged: (app, user) => {
+      onUserLogin: (req, app, user) => {
         user = user.toJSON()
         if (user.passports) {
           delete user.passports
         }
-        user.onUserLogged = true
+        user.onUserLogin = true
         return Promise.resolve(user)
       },
       strategies: {

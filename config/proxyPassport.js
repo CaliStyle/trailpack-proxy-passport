@@ -6,7 +6,7 @@ module.exports = {
     logout: '/'//Logout successful
   },
   bcrypt: require('bcryptjs'),
-  onUserLogged: (app, user) => {
+  onUserLogin: (req, app, user) => {
     user = user.toJSON()
     if (user.passports) {
       delete user.passports
