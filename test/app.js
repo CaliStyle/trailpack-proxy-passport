@@ -60,11 +60,10 @@ const App = {
     proxyPassport: {
       onUserLogin: {
         test: (req, app, user) => {
-          user = user.toJSON()
           if (user.passports) {
             delete user.passports
           }
-          user.onUserLogin = true
+          user.dataValues.onUserLogin = true
           return Promise.resolve(user)
         }
       },

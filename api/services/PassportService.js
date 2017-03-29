@@ -166,7 +166,7 @@ module.exports = class PassportService extends Service {
           }))
             .then(userAttrs => {
               userAttrs.map(u => {
-                user = _.extend(user.toJSON(), u)
+                user = _.extend(user, u)
               })
               return Promise.resolve(user)
             })
@@ -337,7 +337,7 @@ module.exports = class PassportService extends Service {
                 }))
                   .then(userAttrs => {
                     userAttrs.map(u => {
-                      user = _.extend(user.toJSON(), u)
+                      user = _.extend(user, u)
                     })
                     return resolve(user)
                   })
@@ -372,7 +372,7 @@ module.exports = class PassportService extends Service {
       }))
         .then(userAttrs => {
           userAttrs.map(u => {
-            user = _.extend(user.toJSON(), u)
+            user = _.extend(user, u)
           })
           return Promise.resolve(user)
         })
