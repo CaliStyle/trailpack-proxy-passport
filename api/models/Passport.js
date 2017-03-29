@@ -13,6 +13,7 @@ module.exports = class Passport extends Model {
     return {
       //More informations about supported models options here : http://docs.sequelizejs.com/en/latest/docs/models-definition/#configuration
       options: {
+        underscored: true,
         hooks: {
           beforeCreate: (values, options, fn) => {
             hashPassword(app.config.proxyPassport.bcrypt, values, fn)
