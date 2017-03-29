@@ -75,7 +75,7 @@ module.exports = class PassportService extends Service {
 
     if (provider === 'local') {
       if (action === 'register' && !req.user) {
-        this.register(req.body)
+        this.register(req, req.body)
           .then(user => next(null, user))
           .catch(next)
       }
@@ -89,7 +89,7 @@ module.exports = class PassportService extends Service {
       }
       else if (action === 'recover') {
         this.recover(req.user, req.body)
-          .then(user => next(null, req.user))
+          .then(user => next(null, user))
           .catch(next)
       }
       else {
@@ -128,7 +128,7 @@ module.exports = class PassportService extends Service {
    * @param userInfos
    * @returns {*}
    */
-  register(userInfos) {
+  register(req, userInfos) {
     const User = this.app.orm['User']
     const Passport = this.app.orm['Passport']
 
@@ -154,6 +154,33 @@ module.exports = class PassportService extends Service {
         }
       ]
     })
+      .then(user => {
+        const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
+        if (typeof onUserLogin === 'object') {
+          const promises = []
+          Object.keys(onUserLogin).forEach(func => {
+            promises.push(onUserLogin[func])
+          })
+          return Promise.all(promises.map(func => {
+            return func(req, this.app, user)
+          }))
+            .then(userAttrs => {
+              userAttrs.map(u => {
+                user = _.extend(user.toJSON(), u)
+              })
+              return Promise.resolve(user)
+            })
+            .catch(err => {
+              return Promise.reject(err)
+            })
+        }
+        else if (typeof onUserLogin === 'function') {
+          return Promise.resolve(onUserLogin(req, this.app, user))
+        }
+        else {
+          return Promise.resolve(user)
+        }
+      })
   }
 
   /**
@@ -299,11 +326,30 @@ module.exports = class PassportService extends Service {
               return reject(err)
             }
             if (valid) {
-              if (Array.isArray(onUserLogin)) {
-                return resolve(Promise.all(onUserLogin.map(func => func(req, this.app, user))))
+              if (typeof onUserLogin === 'object') {
+                const promises = []
+                Object.keys(onUserLogin).forEach(func => {
+                  promises.push(onUserLogin[func])
+                })
+
+                Promise.all(promises.map(func => {
+                  return func(req, this.app, user)
+                }))
+                  .then(userAttrs => {
+                    userAttrs.map(u => {
+                      user = _.extend(user.toJSON(), u)
+                    })
+                    return resolve(user)
+                  })
+                  .catch(err => {
+                    return reject(err)
+                  })
+              }
+              else if (typeof onUserLogin === 'function') {
+                return resolve(Promise.resolve(onUserLogin(req, this.app, user)))
               }
               else {
-                return resolve(Promise.resolve(onUserLogin(req, this.app, user)))
+                return resolve(user)
               }
             }
             else {
@@ -313,10 +359,26 @@ module.exports = class PassportService extends Service {
         })
       })
   }
-  logout(req) {
+  logout(req, user) {
     const onUserLogout = _.get(this.app, 'config.proxyPassport.onUserLogout')
-    if (Array.isArray(onUserLogout)) {
-      return Promise.all(onUserLogout.map(func => func(req, this.app)))
+    if (typeof onUserLogout === 'object') {
+      const promises = []
+      Object.keys(onUserLogout).forEach(func => {
+        promises.push(onUserLogout[func])
+      })
+
+      return Promise.all(promises.map(func => {
+        return func(req, this.app, user)
+      }))
+        .then(userAttrs => {
+          userAttrs.map(u => {
+            user = _.extend(user.toJSON(), u)
+          })
+          return Promise.resolve(user)
+        })
+        .catch(err => {
+          return Promise.reject(err)
+        })
     }
     else {
       return Promise.resolve(onUserLogout(req, this.app))

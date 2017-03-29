@@ -244,8 +244,8 @@ Just make a GET to `auth/logout`
 [npm-image]: https://img.shields.io/npm/v/trailpack-proxy-passport.svg?style=flat-square
 [npm-url]: https://npmjs.org/package/trailpack-proxy-passport
 [npm-download]: https://img.shields.io/npm/dt/trailpack-proxy-passport.svg
-[ci-image]: https://travis-ci.org/calistyle/trailpack-proxy-passport.svg?branch=master
-[ci-url]: https://travis-ci.org/calistyle/trailpack-proxy-passport
+[ci-image]: https://img.shields.io/circleci/project/github/CaliStyle/trailpack-proxy-passport/master.svg
+[ci-url]: https://circleci.com/gh/CaliStyle/trailpack-proxy-passport/tree/master
 [daviddm-image]: http://img.shields.io/david/calistyle/trailpack-proxy-passport.svg?style=flat-square
 [daviddm-url]: https://david-dm.org/calistyle/trailpack-proxy-passport
 [codeclimate-image]: https://img.shields.io/codeclimate/github/calistyle/trailpack-proxy-passport.svg?style=flat-square
