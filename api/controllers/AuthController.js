@@ -98,7 +98,7 @@ module.exports = class AuthController extends Controller {
     this.app.services.PassportService.logout(req)
       .then(() => {
         if (req.wantsJSON) {
-          res.json({redirect: redirect})
+          res.json({ redirect: redirect })
         }
         else {
           res.redirect(redirect)
@@ -106,7 +106,7 @@ module.exports = class AuthController extends Controller {
       })
       .catch(err => {
         if (req.wantsJSON) {
-          res.json({redirect: redirect})
+          res.json({ redirect: redirect })
         }
         else {
           res.redirect(redirect)

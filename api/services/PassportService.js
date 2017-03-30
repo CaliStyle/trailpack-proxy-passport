@@ -16,6 +16,10 @@ module.exports = class PassportService extends Service {
     this.passport = require('passport')
   }
 
+  validateEmail(email) {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+    return re.test(email)
+  }
   /**
    * Create a token based on the passed user
    * @param user infos to serialize
@@ -100,6 +104,10 @@ module.exports = class PassportService extends Service {
           }
           else if (req.body['email']) {
             id = 'email'
+          }
+          else if (req.body['identifier']) {
+            const test = this.validateEmail(req.body['identifier'])
+            id = test ? 'email' : 'username'
           }
           else {
             const err = new Error('No username or email field')
@@ -295,7 +303,7 @@ module.exports = class PassportService extends Service {
     const User = this.app.orm['User']
     const Passport = this.app.orm['Passport']
     const criteria = {}
-
+    console.log('fieldName', fieldName)
     criteria[fieldName] = identifier
 
     return User.findOne({where: criteria,
@@ -305,7 +313,6 @@ module.exports = class PassportService extends Service {
         required: true
       }]
     })
-    // return this.app.services.FootprintService.find('User', criteria, {populate: 'passports'})
       .then(user => {
         if (!user) {
           throw new Error('E_USER_NOT_FOUND')

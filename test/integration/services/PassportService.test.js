@@ -51,10 +51,22 @@ describe('PassportService', () => {
       .send({})
       .expect(200)
       .end((err, res) => {
-        // assert.equal(res.body.redirect, '/')
-        // assert.notEqual(res.body.user.id,null)
-        // assert.equal(res.body.user.username, 'jim')
-        // assert.ok(res.body.user.onUserLogin)
+        assert.equal(res.body.redirect, '/')
+        done(err)
+      })
+  })
+
+  it('should login logged out user', (done) => {
+    agent
+      .post('/auth/local')
+      .set('Accept', 'application/json') //set header for this test
+      .send({
+        identifier: 'jim',
+        password: 'adminadmin'
+      })
+      .expect(200)
+      .end((err, res) => {
+        assert.equal(res.body.redirect, '/')
         done(err)
       })
   })
@@ -105,12 +117,15 @@ describe('PassportService', () => {
     request
       .post('/auth/local')
       .set('Accept', 'application/json') //set header for this test
-      .send({email: 'test@test.te', password: 'adminadmin'})
+      .send({
+        email: 'test@test.te',
+        password: 'adminadmin'
+      })
       .expect(200)
       .end((err, res) => {
         // console.log(res.body)
         assert.equal(res.body.redirect, '/')
-        assert.notEqual(res.body.user.id,null)
+        assert.notEqual(res.body.user.id, null)
         assert.equal(res.body.user.username, 'jaumard')
         assert(res.body.token)//JWT token
         assert.ok(res.body.user.onUserLogin)
