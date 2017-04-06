@@ -42,6 +42,10 @@ module.exports = class User extends Model {
         validate: {
           isEmail: true
         }
+      },
+      recovery: {
+        type: Sequelize.STRING,
+        allowNull: true
       }
     }
   }

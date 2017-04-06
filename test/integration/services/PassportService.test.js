@@ -5,7 +5,7 @@ const assert = require('assert')
 const supertest = require('supertest')
 
 describe('PassportService', () => {
-  let request, agent, token, user
+  let request, agent, token, user, recovery
   before((done) => {
     request = supertest('http://localhost:3000')
     agent = supertest.agent(global.app.packs.express.server)
@@ -44,6 +44,37 @@ describe('PassportService', () => {
         done(err)
       })
   })
+  it('should log a user with password', (done) => {
+    agent
+      .post('/auth/local')
+      .set('Accept', 'application/json') //set header for this test
+      .send({
+        username: 'jim',
+        password: 'adminadmin'
+      })
+      .expect(200)
+      .end((err, res) => {
+        // console.log(res.body)
+        assert.equal(res.body.redirect, '/')
+        assert.notEqual(res.body.user.id, null)
+        assert.equal(res.body.user.username, 'jim')
+        assert(res.body.token)//JWT token
+        assert.ok(res.body.user.onUserLogin)
+        done(err)
+      })
+  })
+  it('should update a user\'s password on /auth/local/reset', (done) => {
+    agent
+      .post('/auth/local/reset')
+      .set('Accept', 'application/json') //set header for this test
+      .send({ password: 'adminNew'})
+      .expect(200)
+      .end((err, res) => {
+        // console.log('RESET', res.body)
+        assert.notEqual(res.body.user.id, null)
+        done(err)
+      })
+  })
   it('should logout logged in user', (done) => {
     agent
       .post('/auth/logout')
@@ -55,6 +86,25 @@ describe('PassportService', () => {
         done(err)
       })
   })
+  it('should log a user with new password', (done) => {
+    agent
+      .post('/auth/local')
+      .set('Accept', 'application/json') //set header for this test
+      .send({
+        username: 'jim',
+        password: 'adminNew'
+      })
+      .expect(200)
+      .end((err, res) => {
+        // console.log(res.body)
+        assert.equal(res.body.redirect, '/')
+        assert.notEqual(res.body.user.id, null)
+        assert.equal(res.body.user.username, 'jim')
+        assert(res.body.token)//JWT token
+        assert.ok(res.body.user.onUserLogin)
+        done(err)
+      })
+  })
 
   it('should login logged out user', (done) => {
     agent
@@ -62,11 +112,46 @@ describe('PassportService', () => {
       .set('Accept', 'application/json') //set header for this test
       .send({
         identifier: 'jim',
-        password: 'adminadmin'
+        password: 'adminNew'
       })
       .expect(200)
       .end((err, res) => {
         assert.equal(res.body.redirect, '/')
+        done(err)
+      })
+  })
+
+  it('should start a recovery', (done) => {
+    agent
+      .post('/auth/recover')
+      .set('Accept', 'application/json') //set header for this test
+      .send({
+        identifier: 'jim'
+      })
+      .expect(200)
+      .end((err, res) => {
+//         console.log('THIS RECOVER', res.body)
+        recovery = res.body.user.recovery
+        assert.equal(res.body.redirect, '/')
+        assert.equal(res.body.user.username, 'jim')
+        assert.equal()
+        done(err)
+      })
+  })
+  it('should end a recovery', (done) => {
+    request
+      .post('/auth/local/recover')
+      .set('Accept', 'application/json') //set header for this test
+      .send({
+        recovery: recovery,
+        password: 'adminNewNew'
+      })
+      .expect(200)
+      .end((err, res) => {
+        // console.log('THIS RECOVER', res.body)
+        assert.equal(res.body.redirect, '/')
+        assert.equal(res.body.user.username, 'jim')
+        assert.equal()
         done(err)
       })
   })

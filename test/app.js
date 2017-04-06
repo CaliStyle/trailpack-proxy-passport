@@ -70,6 +70,16 @@ const App = {
       onUserLogout: (req, app, user) => {
         return Promise.resolve(user)
       },
+      onUserRecover: (req, app, user) => {
+        // console.log('THIS RECOVER onUserRecover', user)
+        // if (user.recovery) {
+        //   delete user.recovery
+        // }
+        if (user.passports) {
+          delete user.passports
+        }
+        return Promise.resolve(user)
+      },
       strategies: {
         jwt: {
           strategy: JwtStrategy,
@@ -120,6 +130,9 @@ const App = {
     }],
     policies: {
       DefaultController: ['Passport.jwt']
+    },
+    session: {
+      secret: 'ok'
     },
     web: {
       express: require('express'),

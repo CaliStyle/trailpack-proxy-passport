@@ -91,8 +91,13 @@ module.exports = class PassportService extends Service {
       else if (action === 'disconnect' && req.user) {
         this.disconnect(req, next)
       }
-      else if (action === 'recover') {
-        this.recover(req.user, req.body)
+      else if (action === 'reset' && req.user) {
+        this.reset(req.user, req.body.password)
+          .then(user => next(null, user))
+          .catch(next)
+      }
+      else if (action === 'recover' && !req.user) {
+        this.resetRecover(req, req.body)
           .then(user => next(null, user))
           .catch(next)
       }
@@ -303,7 +308,7 @@ module.exports = class PassportService extends Service {
     const User = this.app.orm['User']
     const Passport = this.app.orm['Passport']
     const criteria = {}
-    console.log('fieldName', fieldName)
+    // console.log('fieldName', fieldName)
     criteria[fieldName] = identifier
 
     return User.findOne({where: criteria,
@@ -391,25 +396,157 @@ module.exports = class PassportService extends Service {
       return Promise.resolve(onUserLogout(req, this.app))
     }
   }
-  recover(user, profile) {
-    user = user || {}
 
-    return Promise.resolve(user)
-    // // If the profile object contains a list of emails, grab the first one and
-    // // add it to the user.
-    // if (profile.hasOwnProperty('emails')) {
-    //   user.email = profile.emails[0].value
-    // }
-    // // If the profile object contains a username, add it to the user.
-    // if (profile.hasOwnProperty('username')) {
-    //   user.username = profile.username
-    // }
-    //
-    // // If neither an email or a username was available in the profile, we don't
-    // // have a way of identifying the user in the future. Throw an error and let
-    // // whoever's next in the line take care of it.
-    // if (!user.username && !user.email) {
-    //   return next(new Error('Neither a username nor email was available'))
-    // }
+  recover(req, body) {
+    const User = this.app.orm['User']
+    const Passport = this.app.orm['Passport']
+    const criteria = {}
+
+    let id
+    let fieldName
+
+    if (body['username']) {
+      id = 'username'
+      fieldName = 'username'
+    }
+    else if (body['email']) {
+      id = 'email'
+      fieldName = 'email'
+    }
+    else if (body['identifier']) {
+      const test = this.validateEmail(body['identifier'])
+      id = test ? 'email' : 'username'
+      fieldName = 'identifier'
+    }
+    else {
+      const err = new Error('No username or email field')
+      err.code = 'E_VALIDATION'
+      throw err
+    }
+
+    // console.log('fieldName', fieldName)
+    criteria[id] = body[fieldName]
+    // console.log('this recovery', body[fieldName])
+
+    return User.findOne({
+      where: criteria,
+      include: [{
+        model: Passport,
+        as: 'passports',
+        required: true
+      }]
+    })
+      .then(user => {
+        if (!user) {
+          throw new Error('E_USER_NOT_FOUND')
+        }
+        if (user.passports) {
+          const localPassport = user.passports.find(passportObj => passportObj.protocol === 'local')
+          if (localPassport) {
+            return new Promise((resolve, reject) => {
+              this.app.config.proxyPassport.bcrypt.hash(body[fieldName], 10, (err, hash) => {
+                if (err) {
+                  console.log(err)
+                  return reject('E_VALIDATION')
+                }
+                user.recovery = hash
+                return resolve(user.save())
+              })
+            })
+          }
+          else {
+            throw new Error('E_NO_AVAILABLE_LOCAL_PASSPORT')
+          }
+        }
+        else {
+          throw new Error('E_NO_AVAILABLE_PASSPORTS')
+        }
+      })
+      .then(user => {
+        return this.onRecover(req, user)
+      })
+      .catch(err => {
+        return Promise.reject('E_VALIDATION')
+      })
+  }
+
+  /**
+   *
+   * @param req
+   * @param user
+   * @returns {*}
+   */
+  onRecover(req, user) {
+    // console.log('THIS RECOVER onRecover', user)
+    const onUserRecover = _.get(this.app, 'config.proxyPassport.onUserRecover')
+    if (typeof onUserRecover === 'object') {
+      const promises = []
+      Object.keys(onUserRecover).forEach(func => {
+        promises.push(onUserRecover[func])
+      })
+
+      return Promise.all(promises.map(func => {
+        return func(req, this.app, user)
+      }))
+        .then(userAttrs => {
+          userAttrs.map(u => {
+            user = _.extend(user, u)
+          })
+          return Promise.resolve(user)
+        })
+        .catch(err => {
+          return Promise.reject(err)
+        })
+    }
+    else {
+      return Promise.resolve(onUserRecover(req, this.app, user))
+    }
+  }
+
+  /**
+   *
+   * @param user
+   * @param password
+   * @returns {Promise.<TResult>}
+   */
+  reset(user, password) {
+    if (!user){
+      throw new Error('E_USER_NOT_FOUND')
+    }
+    return this.updateLocalPassword(user, password)
+      .then(passports => {
+        return user
+      })
+  }
+
+  /**
+   *
+   * @param req
+   * @param body
+   * @returns {Promise.<TResult>|*}
+   */
+  resetRecover(req, body) {
+    const User = this.app.orm['User']
+    if (!body.recovery){
+      throw new Error('E_USER_NOT_FOUND')
+    }
+    if (!body.password){
+      throw new Error('E_VALIDATION')
+    }
+
+    return User.findOne({
+      where: {
+        recovery: body.recovery
+      }
+    })
+      .then(user => {
+        if (!user) {
+          throw new Error('E_USER_NOT_FOUND')
+        }
+        return this.updateLocalPassword(user, body.password)
+          .then(passports => {
+            return user
+          })
+      })
   }
 }

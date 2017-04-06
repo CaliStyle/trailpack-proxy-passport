@@ -54,9 +54,18 @@ module.exports = class Passport extends Model {
         }
       },
 
-      provider: {type: Sequelize.STRING, allowNull: true},
-      identifier: {type: Sequelize.STRING, allowNull: true},
-      tokens: {type: Sequelize.STRING, allowNull: true}
+      provider: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      identifier: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      tokens: {
+        type: Sequelize.STRING,
+        allowNull: true
+      }
     }
   }
 

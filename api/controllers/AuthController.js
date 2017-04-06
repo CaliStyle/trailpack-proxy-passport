@@ -1,3 +1,4 @@
+/* eslint no-console: [0] */
 'use strict'
 
 const Controller = require('trails/controller')
@@ -107,6 +108,35 @@ module.exports = class AuthController extends Controller {
       .catch(err => {
         if (req.wantsJSON) {
           res.json({ redirect: redirect })
+        }
+        else {
+          res.redirect(redirect)
+        }
+      })
+  }
+  recover(req, res) {
+    let redirect = this.app.config.proxyPassport.redirect.recover
+    if (req.body.redirect || req.query.redirect) {
+      redirect = req.body.redirect || req.query.redirect
+    }
+    this.app.services.PassportService.recover(req, req.body)
+      .then((user) => {
+        // console.log('THIS RECOVER',user)
+        if (req.wantsJSON) {
+          res.json({
+            redirect: redirect,
+            user: user
+          })
+        }
+        else {
+          res.redirect(redirect)
+        }
+      })
+      .catch(err => {
+        if (req.wantsJSON) {
+          res.json({
+            redirect: redirect
+          })
         }
         else {
           res.redirect(redirect)

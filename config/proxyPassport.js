@@ -2,8 +2,12 @@
 
 module.exports = {
   redirect: {
-    login: '/',//Login successful
-    logout: '/'//Logout successful
+    //Login successful
+    login: '/',
+    //Logout successful
+    logout: '/',
+    //Recover successful
+    recover: '/'
   },
   bcrypt: require('bcryptjs'),
   // onUserLogin: (req, app, user) => {

@@ -25,7 +25,9 @@ module.exports = {
     //Login successful
     login: '/',
     //Logout successful
-    logout: '/'
+    logout: '/',
+    //recover successful
+    recover: '/'
   },
   /**
    * Auth strategies allowed
