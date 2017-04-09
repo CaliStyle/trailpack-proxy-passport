@@ -1,6 +1,6 @@
 {
   "name": "trailpack-proxy-passport",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Trailpack to allow passport authentification to Trails application",
   "homepage": "https://github.com/calistyle/trailpack-proxy-passport",
   "author": {
@@ -38,8 +38,8 @@
     "jsonwebtoken": "7.3.0",
     "lodash": "^4.17.3",
     "passport": "^0.3.2",
-    "trailpack": "2.1.2",
-    "trails-controller": "^2.0.0"
+    "pg": "^6.1.5",
+    "trailpack": "2.1.2"
   },
   "devDependencies": {
     "eslint": "3.18.0",

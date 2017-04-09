@@ -18,6 +18,7 @@ const packs = [
 ]
 
 const ORM = process.env.ORM || 'sequelize'
+const DIALECT = process.env.DIALECT || 'sqlite'
 
 const stores = {
   sqlitedev: {
@@ -27,11 +28,21 @@ const stores = {
 
 if (ORM === 'sequelize') {
   packs.push(require('trailpack-sequelize'))
-  stores.sqlitedev = {
-    database: 'dev',
-    storage: './.tmp/dev.sqlite',
-    host: '127.0.0.1',
-    dialect: 'sqlite'
+  if (DIALECT == 'postgres') {
+    stores.sqlitedev = {
+      database: 'ProxyPassport',
+      host: '127.0.0.1',
+      dialect: 'postgres',
+      username: 'scott'
+    }
+  }
+  else {
+    stores.sqlitedev = {
+      database: 'ProxyPassport',
+      storage: './test/test.sqlite',
+      host: '127.0.0.1',
+      dialect: 'sqlite'
+    }
   }
 }
 
