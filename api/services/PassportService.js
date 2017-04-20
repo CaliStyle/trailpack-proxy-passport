@@ -168,6 +168,15 @@ module.exports = class PassportService extends Service {
       ]
     })
       .then(user => {
+
+        const event = {
+          object_id: user.id,
+          object: 'user',
+          type: 'user.registered',
+          data: user
+        }
+        this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
         const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
         if (typeof onUserLogin === 'object') {
           const promises = []
@@ -218,6 +227,15 @@ module.exports = class PassportService extends Service {
           if (user.passports) {
             const localPassport = user.passports.find(passportObj => passportObj.protocol === 'local')
             if (localPassport) {
+
+              const event = {
+                object_id: user.id,
+                object: 'user',
+                type: 'user.password.updated',
+                data: user
+              }
+              this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
               localPassport.password = password
               return localPassport.save()
             }
@@ -338,6 +356,15 @@ module.exports = class PassportService extends Service {
               return reject(err)
             }
             if (valid) {
+
+              const event = {
+                object_id: user.id,
+                object: 'user',
+                type: 'user.login',
+                data: user
+              }
+              this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
               if (typeof onUserLogin === 'object') {
                 const promises = []
                 Object.keys(onUserLogin).forEach(func => {
@@ -446,10 +473,19 @@ module.exports = class PassportService extends Service {
             return new Promise((resolve, reject) => {
               this.app.config.proxyPassport.bcrypt.hash(body[fieldName], 10, (err, hash) => {
                 if (err) {
-                  console.log(err)
+                  // console.log(err)
                   return reject('E_VALIDATION')
                 }
                 user.recovery = hash
+
+                const event = {
+                  object_id: user.id,
+                  object: 'user',
+                  type: 'user.password.recover',
+                  data: user
+                }
+                this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
                 return resolve(user.save())
               })
             })
@@ -513,6 +549,15 @@ module.exports = class PassportService extends Service {
     if (!user){
       throw new Error('E_USER_NOT_FOUND')
     }
+
+    const event = {
+      object_id: user.id,
+      object: 'user',
+      type: 'user.password.reset',
+      data: user
+    }
+    this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
     return this.updateLocalPassword(user, password)
       .then(passports => {
         return user
@@ -545,6 +590,15 @@ module.exports = class PassportService extends Service {
         }
         return this.updateLocalPassword(user, body.password)
           .then(passports => {
+
+            const event = {
+              object_id: user.id,
+              object: 'user',
+              type: 'user.password.reset',
+              data: user
+            }
+            this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
             return user
           })
       })

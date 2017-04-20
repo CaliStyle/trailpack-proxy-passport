@@ -1,4 +1,3 @@
-/* eslint no-console: [0] */
 'use strict'
 
 const Controller = require('trails/controller')

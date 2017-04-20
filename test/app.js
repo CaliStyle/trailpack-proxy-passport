@@ -14,6 +14,7 @@ const SECRET = 'mysupersecuretokentest'
 const packs = [
   require('trailpack-router'),
   require('trailpack-express'),
+  require('trailpack-proxy-engine'),
   require('../') // trailpack-proxy-passport
 ]
 
@@ -67,6 +68,10 @@ const App = {
         defaultStore: 'sqlitedev',
         migrate: 'drop'
       }
+    },
+    proxyEngine: {
+      live_mode: false,
+      worker: 'testProfile'
     },
     proxyPassport: {
       onUserLogin: {
