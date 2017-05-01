@@ -144,7 +144,15 @@ module.exports = class PassportService extends Service {
   register(req, userInfos) {
     const User = this.app.orm['User']
     const Passport = this.app.orm['Passport']
-
+    if (userInfos.email) {
+      userInfos.email = userInfos.email.toLowerCase()
+    }
+    if (userInfos.username) {
+      userInfos.username = userInfos.username.toLowerCase()
+    }
+    if (userInfos.identifier) {
+      userInfos.identifier = userInfos.identifier.toLowerCase()
+    }
     const password = userInfos.password
     delete userInfos.password
 
@@ -173,6 +181,7 @@ module.exports = class PassportService extends Service {
           object_id: user.id,
           object: 'user',
           type: 'user.registered',
+          message: 'User registered',
           data: user
         }
         this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -327,7 +336,7 @@ module.exports = class PassportService extends Service {
     const Passport = this.app.orm['Passport']
     const criteria = {}
     // console.log('fieldName', fieldName)
-    criteria[fieldName] = identifier
+    criteria[fieldName] = identifier.toLowerCase()
 
     return User.findOne({where: criteria,
       include: [{
@@ -452,7 +461,7 @@ module.exports = class PassportService extends Service {
     }
 
     // console.log('fieldName', fieldName)
-    criteria[id] = body[fieldName]
+    criteria[id] = body[fieldName].toLowerCase()
     // console.log('this recovery', body[fieldName])
 
     return User.findOne({
@@ -482,6 +491,7 @@ module.exports = class PassportService extends Service {
                   object_id: user.id,
                   object: 'user',
                   type: 'user.password.recover',
+                  message: 'User requested to recover password',
                   data: user
                 }
                 this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -554,6 +564,7 @@ module.exports = class PassportService extends Service {
       object_id: user.id,
       object: 'user',
       type: 'user.password.reset',
+      message: 'User password was reset',
       data: user
     }
     this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -595,6 +606,7 @@ module.exports = class PassportService extends Service {
               object_id: user.id,
               object: 'user',
               type: 'user.password.reset',
+              message: 'User password was reset',
               data: user
             }
             this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
