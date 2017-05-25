@@ -27,16 +27,26 @@ module.exports = {
        * List of events that must be fired before the configure lifecycle
        * method is invoked on this Trailpack
        */
-      listen: [ ],
+      listen: [
+        'trailpack:sequelize:configured',
+        'trailpack:proxy-engine:configured'
+      ],
 
       /**
        * List of events emitted by the configure lifecycle method
        */
-      emit: [ ]
+      emit: [
+        'trailpack:proxy-passport:configured'
+      ]
     },
     initialize: {
-      listen: [ ],
-      emit: [ ]
+      listen: [
+        'trailpack:sequelize:initialized',
+        'trailpack:proxy-engine:initialized'
+      ],
+      emit: [
+        'trailpack:proxy-passport:initialized'
+      ]
     }
   }
 }
