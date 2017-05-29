@@ -32,6 +32,13 @@ module.exports = class User extends Model {
             }
             options = _.merge(options, queryDefaults.User.default(app))
             return this.findById(criteria, options)
+          },
+          findOneDefault: function(options) {
+            if (!options) {
+              options = {}
+            }
+            options = _.merge(options, queryDefaults.User.default(app))
+            return this.findOne(options)
           }
         }
       }

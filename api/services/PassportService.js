@@ -222,14 +222,8 @@ module.exports = class PassportService extends Service {
    */
   updateLocalPassword(user, password) {
     const User = this.app.orm['User']
-    const Passport = this.app.orm['Passport']
-    return User.findById(user.id, {
-      include: [{
-        model: Passport,
-        as: 'passports',
-        required: true
-      }]
-    })
+    // const Passport = this.app.orm['Passport']
+    return User.findByIdDefault(user.id)
       .then(user => {
         if (user) {
           // user = user[0]
@@ -333,17 +327,13 @@ module.exports = class PassportService extends Service {
    */
   login(req, fieldName, identifier, password) {
     const User = this.app.orm['User']
-    const Passport = this.app.orm['Passport']
+    // const Passport = this.app.orm['Passport']
     const criteria = {}
     // console.log('fieldName', fieldName)
     criteria[fieldName] = identifier.toLowerCase()
 
-    return User.findOne({where: criteria,
-      include: [{
-        model: Passport,
-        as: 'passports',
-        required: true
-      }]
+    return User.findOneDefault({
+      where: criteria
     })
       .then(user => {
         if (!user) {
@@ -435,7 +425,7 @@ module.exports = class PassportService extends Service {
 
   recover(req, body) {
     const User = this.app.orm['User']
-    const Passport = this.app.orm['Passport']
+    // const Passport = this.app.orm['Passport']
     const criteria = {}
 
     let id
@@ -464,13 +454,8 @@ module.exports = class PassportService extends Service {
     criteria[id] = body[fieldName].toLowerCase()
     // console.log('this recovery', body[fieldName])
 
-    return User.findOne({
-      where: criteria,
-      include: [{
-        model: Passport,
-        as: 'passports',
-        required: true
-      }]
+    return User.findOneDefault({
+      where: criteria
     })
       .then(user => {
         if (!user) {
