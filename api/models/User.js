@@ -1,7 +1,8 @@
 'use strict'
 
 const Model = require('trails/model')
-
+const _ = require('lodash')
+const queryDefaults = require('../utils/queryDefaults')
 /**
  * @module User
  * @description User model for basic auth
@@ -24,6 +25,13 @@ module.exports = class User extends Model {
                 allowNull: false
               }
             })
+          },
+          findByIdDefault: function(criteria, options) {
+            if (!options) {
+              options = {}
+            }
+            options = _.merge(options, queryDefaults.User.default(app))
+            return this.findById(criteria, options)
           }
         }
       }
