@@ -1,6 +1,6 @@
 {
   "name": "trailpack-proxy-passport",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Trailpack to allow passport authentification to Trails application",
   "homepage": "https://github.com/calistyle/trailpack-proxy-passport",
   "author": {

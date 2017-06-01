@@ -536,6 +536,39 @@ module.exports = class PassportService extends Service {
 
   /**
    *
+   * @param req
+   * @param user
+   * @returns {*}
+   */
+  onRecovered(req, user) {
+    // console.log('THIS RECOVER onRecover', user)
+    const onUserRecovered = _.get(this.app, 'config.proxyPassport.onUserRecovered')
+    if (typeof onUserRecovered === 'object') {
+      const promises = []
+      Object.keys(onUserRecovered).forEach(func => {
+        promises.push(onUserRecovered[func])
+      })
+
+      return Promise.all(promises.map(func => {
+        return func(req, this.app, user)
+      }))
+        .then(userAttrs => {
+          userAttrs.map(u => {
+            user = _.extend(user, u)
+          })
+          return Promise.resolve(user)
+        })
+        .catch(err => {
+          return Promise.reject(err)
+        })
+    }
+    else {
+      return Promise.resolve(onUserRecovered(req, this.app, user))
+    }
+  }
+
+  /**
+   *
    * @param user
    * @param password
    * @returns {Promise.<TResult>}
@@ -597,6 +630,9 @@ module.exports = class PassportService extends Service {
             this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
 
             return user
+          })
+          .then(user => {
+            return this.onRecovered(req, user)
           })
       })
   }
