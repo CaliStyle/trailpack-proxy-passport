@@ -596,19 +596,18 @@ module.exports = class PassportService extends Service {
       throw new Error('E_USER_NOT_FOUND')
     }
     return this.updateLocalPassword(user, password)
-      .then(passports => {
-
+      .then(passport => {
         const event = {
           object_id: user.id,
           object: 'user',
           objects: [{
             user: user.id
           },{
-            passport: passports[0].id
+            passport: passport.id
           }],
           type: 'user.password.reset',
           message: `User ${user.id} password was reset`,
-          data: user
+          data: passport
         }
         this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
 
@@ -641,19 +640,18 @@ module.exports = class PassportService extends Service {
           throw new Error('E_USER_NOT_FOUND')
         }
         return this.updateLocalPassword(user, body.password)
-          .then(passports => {
-
+          .then(passport => {
             const event = {
               object_id: user.id,
               object: 'user',
               objects: [{
                 user: user.id
               },{
-                passport: passports[0].id
+                passport: passport.id
               }],
               type: 'user.password.reset',
               message: `User ${ user.id } password was reset`,
-              data: user
+              data: passport
             }
             this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
 
