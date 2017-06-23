@@ -180,8 +180,11 @@ module.exports = class PassportService extends Service {
         const event = {
           object_id: user.id,
           object: 'user',
+          objects: [{
+            user: user.id
+          }],
           type: 'user.registered',
-          message: 'User registered',
+          message: `User ${user.id} registered`,
           data: user
         }
         this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -234,7 +237,13 @@ module.exports = class PassportService extends Service {
               const event = {
                 object_id: user.id,
                 object: 'user',
+                objects: [{
+                  user: user.id
+                },{
+                  passport: localPassport.id
+                }],
                 type: 'user.password.updated',
+                message: `User ${user.id} password updated`,
                 data: user
               }
               this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -359,7 +368,11 @@ module.exports = class PassportService extends Service {
               const event = {
                 object_id: user.id,
                 object: 'user',
+                objects: [{
+                  user: user.id
+                }],
                 type: 'user.login',
+                message: `User ${user.id} logged in`,
                 data: user
               }
               this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -475,8 +488,13 @@ module.exports = class PassportService extends Service {
                 const event = {
                   object_id: user.id,
                   object: 'user',
+                  objects: [{
+                    user: user.id
+                  },{
+                    passport: localPassport.id
+                  }],
                   type: 'user.password.recover',
-                  message: 'User requested to recover password',
+                  message: `User ${user.id} requested to recover password`,
                   data: user
                 }
                 this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
@@ -577,18 +595,23 @@ module.exports = class PassportService extends Service {
     if (!user){
       throw new Error('E_USER_NOT_FOUND')
     }
-
-    const event = {
-      object_id: user.id,
-      object: 'user',
-      type: 'user.password.reset',
-      message: 'User password was reset',
-      data: user
-    }
-    this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
-
     return this.updateLocalPassword(user, password)
       .then(passports => {
+
+        const event = {
+          object_id: user.id,
+          object: 'user',
+          objects: [{
+            user: user.id
+          },{
+            passport: passports[0].id
+          }],
+          type: 'user.password.reset',
+          message: `User ${user.id} password was reset`,
+          data: user
+        }
+        this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
         return user
       })
   }
@@ -623,8 +646,13 @@ module.exports = class PassportService extends Service {
             const event = {
               object_id: user.id,
               object: 'user',
+              objects: [{
+                user: user.id
+              },{
+                passport: passports[0].id
+              }],
               type: 'user.password.reset',
-              message: 'User password was reset',
+              message: `User ${ user.id } password was reset`,
               data: user
             }
             this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
