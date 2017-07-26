@@ -410,6 +410,13 @@ module.exports = class PassportService extends Service {
         })
       })
   }
+
+  /**
+   *
+   * @param req
+   * @param user
+   * @returns {*}
+   */
   logout(req, user) {
     const onUserLogout = _.get(this.app, 'config.proxyPassport.onUserLogout')
     if (typeof onUserLogout === 'object') {
@@ -436,6 +443,12 @@ module.exports = class PassportService extends Service {
     }
   }
 
+  /**
+   *
+   * @param req
+   * @param body
+   * @returns {Promise.<TResult>}
+   */
   recover(req, body) {
     const User = this.app.orm['User']
     // const Passport = this.app.orm['Passport']

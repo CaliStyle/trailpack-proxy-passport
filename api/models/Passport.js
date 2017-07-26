@@ -11,7 +11,6 @@ module.exports = class Passport extends Model {
 
   static config(app, Sequelize) {
     return {
-      //More informations about supported models options here : http://docs.sequelizejs.com/en/latest/docs/models-definition/#configuration
       options: {
         underscored: true,
         hooks: {
@@ -24,10 +23,27 @@ module.exports = class Passport extends Model {
           }
         },
         classMethods: {
-          //If you need associations, put them here
           associate: (models) => {
-            //More information about associations here : http://docs.sequelizejs.com/en/latest/docs/associations/
-            models.Passport.belongsTo(models.User)
+            models.Passport.belongsTo(models.User, {
+              //
+            })
+          }
+        },
+        instanceMethods: {
+          resolveUser: function(options) {
+            options = options || {}
+            if (this.User && this.User instanceof app.orm['User'].Instance) {
+              return Promise.resolve(this)
+            }
+            else {
+              return this.getUser({transaction: options.transaction || null})
+                .then(user => {
+                  user = user || null
+                  this.User = user
+                  this.setDataValue('User', user)
+                  this.set('User', user)
+                })
+            }
           }
         }
       }
