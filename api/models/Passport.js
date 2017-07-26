@@ -1,8 +1,8 @@
+/* eslint new-cap: [0] */
 'use strict'
 
 const Model = require('trails/model')
 const hashPassword = require('./hashPassword')
-
 /**
  * @module Passport
  * @description Passport model

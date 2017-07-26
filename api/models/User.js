@@ -5,6 +5,7 @@ const Model = require('trails/model')
 const _ = require('lodash')
 const queryDefaults = require('../utils/queryDefaults')
 const helpers = require('proxy-engine-helpers')
+const Errors = require('proxy-engine-errors')
 /**
  * @module User
  * @description User model for basic auth
@@ -41,6 +42,60 @@ module.exports = class User extends Model {
             }
             options = _.defaultsDeep(options, queryDefaults.User.default(app))
             return this.findOne(options)
+          },
+          resolve: function(user, options){
+            options = options || {}
+            const User =  this
+            if (user instanceof User.Instance){
+              return Promise.resolve(user)
+            }
+            else if (user && _.isObject(user) && user.id) {
+              return User.findById(user.id, options)
+                .then(resUser => {
+                  if (!resUser) {
+                    throw new Errors.FoundError(Error(`User ${user.id} not found`))
+                  }
+                  return resUser
+                })
+            }
+            else if (user && _.isObject(user) && user.email) {
+              return User.findOne(_.defaultsDeep({
+                where: {
+                  email: user.email
+                }
+              }, options))
+                .then(resUser => {
+                  if (!resUser) {
+                    throw new Errors.FoundError(Error(`User ${user.email} not found`))
+                  }
+                  return resUser
+                })
+            }
+            else if (user && _.isNumber(user)) {
+              return User.findById(user, options)
+                .then(resUser => {
+                  if (!resUser) {
+                    throw new Errors.FoundError(Error(`User ${user} not found`))
+                  }
+                  return resUser
+                })
+            }
+            else if (user && _.isString(user)) {
+              return User.findOne(_.defaultsDeep({
+                where: {
+                  email: user
+                }
+              }, options))
+                .then(resUser => {
+                  if (!resUser) {
+                    throw new Errors.FoundError(Error(`User ${user} not found`))
+                  }
+                  return resUser
+                })
+            }
+            else {
+              throw new Errors.FoundError(Error(`User ${user} not found`))
+            }
           }
         },
         instanceMethods: {
