@@ -3,7 +3,7 @@ const Trailpack = require('trailpack')
 const lib = require('./lib')
 const _ = require('lodash')
 
-module.exports = class PassportTrailpack extends Trailpack {
+module.exports = class ProxyPassportTrailpack extends Trailpack {
 
   /**
    * Check express4 is used and verify session configuration
@@ -39,9 +39,9 @@ module.exports = class PassportTrailpack extends Trailpack {
    * Initialise passport functions and load strategies
    */
   configure() {
-    lib.Passports.init(this.app)
-    lib.Passports.loadStrategies(this.app)
-    lib.Passports.addRoutes(this.app)
+    lib.ProxyPassport.init(this.app)
+    lib.ProxyPassport.loadStrategies(this.app)
+    lib.ProxyPassport.addRoutes(this.app)
   }
 
   constructor(app) {

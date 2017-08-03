@@ -1,6 +1,6 @@
 {
   "name": "trailpack-proxy-passport",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Trailpack to allow passport authentification to Trails application",
   "homepage": "https://github.com/calistyle/trailpack-proxy-passport",
   "author": {
@@ -55,7 +55,7 @@
     "sqlite3": "^3.1.6",
     "supertest": "3.0.0",
     "trailpack-express": "^2.0.3",
-    "trailpack-proxy-engine": "^1.0.7",
+    "trailpack-proxy-engine": "^1.0.14",
     "trailpack-router": "^2.1.0",
     "trailpack-sequelize": "^2.0.0",
     "trails": "^2.0.2"

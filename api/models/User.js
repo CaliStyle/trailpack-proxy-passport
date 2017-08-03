@@ -45,7 +45,7 @@ module.exports = class User extends Model {
           },
           resolve: function(user, options){
             options = options || {}
-            const User =  this
+            const User = this
             if (user instanceof User.Instance){
               return Promise.resolve(user)
             }

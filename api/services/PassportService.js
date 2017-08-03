@@ -447,11 +447,12 @@ module.exports = class PassportService extends Service {
    *
    * @param req
    * @param body
-   * @returns {Promise.<TResult>}
+   * @param options
+   * @returns {Promise.<T>}
    */
-  recover(req, body) {
+  recover(req, body, options) {
+    options = options || {}
     const User = this.app.orm['User']
-    // const Passport = this.app.orm['Passport']
     const criteria = {}
 
     let id
@@ -476,19 +477,23 @@ module.exports = class PassportService extends Service {
       throw err
     }
 
-    // console.log('fieldName', fieldName)
     criteria[id] = body[fieldName].toLowerCase()
-    // console.log('this recovery', body[fieldName])
 
+    let resUser, localPassport
     return User.findOneDefault({
-      where: criteria
+      where: criteria,
+      transaction: options.transaction || null
     })
-      .then(user => {
-        if (!user) {
+      .then(foundUser => {
+        if (!foundUser) {
           throw new Error('E_USER_NOT_FOUND')
         }
-        if (user.passports) {
-          const localPassport = user.passports.find(passportObj => passportObj.protocol === 'local')
+        resUser = foundUser
+        return resUser.resolvePassports({transaction: options.transaction || null})
+      })
+      .then(() => {
+        if (resUser.passports) {
+          localPassport = resUser.passports.find(passportObj => passportObj.protocol === 'local')
           if (localPassport) {
             return new Promise((resolve, reject) => {
               this.app.config.proxyPassport.bcrypt.hash(body[fieldName], 10, (err, hash) => {
@@ -496,23 +501,8 @@ module.exports = class PassportService extends Service {
                   // console.log(err)
                   return reject('E_VALIDATION')
                 }
-                user.recovery = hash
-
-                const event = {
-                  object_id: user.id,
-                  object: 'user',
-                  objects: [{
-                    user: user.id
-                  },{
-                    passport: localPassport.id
-                  }],
-                  type: 'user.password.recover',
-                  message: `User ${user.id} requested to recover password`,
-                  data: user
-                }
-                this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
-
-                return resolve(user.save())
+                resUser.recovery = hash
+                return resolve(resUser)
               })
             })
           }
@@ -524,8 +514,31 @@ module.exports = class PassportService extends Service {
           throw new Error('E_NO_AVAILABLE_PASSPORTS')
         }
       })
-      .then(user => {
-        return this.onRecover(req, user)
+      .then(() => {
+        return resUser.save({
+          transaction: options.transaction || null
+        })
+      })
+      .then(() => {
+        const event = {
+          object_id: resUser.id,
+          object: 'user',
+          objects: [{
+            user: resUser.id
+          }, {
+            passport: localPassport.id
+          }],
+          type: 'user.password.recover',
+          message: `User ${resUser.id} requested to recover password`,
+          data: resUser
+        }
+        return this.app.services.ProxyEngineService.publish(event.type, event, {
+          save: true,
+          transaction: options.transaction || null
+        })
+      })
+      .then(() => {
+        return this.onRecover(req, resUser, options)
       })
       .catch(err => {
         return Promise.reject('E_VALIDATION')
@@ -536,9 +549,11 @@ module.exports = class PassportService extends Service {
    *
    * @param req
    * @param user
+   * @param options
    * @returns {*}
    */
-  onRecover(req, user) {
+  onRecover(req, user, options) {
+    options = options || {}
     // console.log('THIS RECOVER onRecover', user)
     const onUserRecover = _.get(this.app, 'config.proxyPassport.onUserRecover')
     if (typeof onUserRecover === 'object') {
@@ -569,9 +584,11 @@ module.exports = class PassportService extends Service {
    *
    * @param req
    * @param user
+   * @param options
    * @returns {*}
    */
-  onRecovered(req, user) {
+  onRecovered(req, user, options) {
+    options = options || {}
     // console.log('THIS RECOVER onRecover', user)
     const onUserRecovered = _.get(this.app, 'config.proxyPassport.onUserRecovered')
     if (typeof onUserRecovered === 'object') {
@@ -602,9 +619,11 @@ module.exports = class PassportService extends Service {
    *
    * @param user
    * @param password
-   * @returns {Promise.<TResult>}
+   * @param options
+   * @returns {Promise.<T>}
    */
-  reset(user, password) {
+  reset(user, password, options) {
+    options = options || {}
     if (!user){
       throw new Error('E_USER_NOT_FOUND')
     }
@@ -615,15 +634,19 @@ module.exports = class PassportService extends Service {
           object: 'user',
           objects: [{
             user: user.id
-          },{
+          }, {
             passport: passport.id
           }],
           type: 'user.password.reset',
           message: `User ${user.id} password was reset`,
           data: passport
         }
-        this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
-
+        return this.app.services.ProxyEngineService.publish(event.type, event, {
+          save: true,
+          transaction: options.transaction || null
+        })
+      })
+      .then(event => {
         return user
       })
   }
@@ -632,9 +655,11 @@ module.exports = class PassportService extends Service {
    *
    * @param req
    * @param body
-   * @returns {Promise.<TResult>|*}
+   * @param options
+   * @returns {Promise.<T>|*}
    */
-  resetRecover(req, body) {
+  resetRecover(req, body, options) {
+    options = options || {}
     const User = this.app.orm['User']
     if (!body.recovery){
       throw new Error('E_USER_NOT_FOUND')
@@ -646,7 +671,8 @@ module.exports = class PassportService extends Service {
     return User.findOne({
       where: {
         recovery: body.recovery
-      }
+      },
+      transaction: options.transaction || null
     })
       .then(user => {
         if (!user) {
@@ -666,12 +692,15 @@ module.exports = class PassportService extends Service {
               message: `User ${ user.id } password was reset`,
               data: passport
             }
-            this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+            this.app.services.ProxyEngineService.publish(event.type, event, {
+              save: true,
+              transaction: options.transaction || null
+            })
 
             return user
           })
           .then(user => {
-            return this.onRecovered(req, user)
+            return this.onRecovered(req, user, options)
           })
       })
   }

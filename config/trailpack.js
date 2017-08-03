@@ -10,9 +10,9 @@ module.exports = {
    */
   provides: {
     api: {
-      controllers: [ 'AuthController' ],
-      services: ['PassportService']
-      // ...
+      controllers: ['AuthController'],
+      services: ['PassportService'],
+      models: ['User','Passport']
     },
     config: [ ]
   },
