@@ -6,6 +6,8 @@ const _ = require('lodash')
 const queryDefaults = require('../utils/queryDefaults')
 const helpers = require('proxy-engine-helpers')
 const Errors = require('proxy-engine-errors')
+const shortId = require('shortid')
+
 /**
  * @module User
  * @description User model for basic auth
@@ -14,9 +16,18 @@ module.exports = class User extends Model {
 
   static config(app, Sequelize) {
     return {
-      //More informations about supported models options here : http://docs.sequelizejs.com/en/latest/docs/models-definition/#configuration
+      //More information about supported models options here : http://docs.sequelizejs.com/en/latest/docs/models-definition/#configuration
       options: {
         underscored: true,
+        hooks: {
+          beforeCreate: function(values, options, fn) {
+            // If not token was already created, create it
+            if (!values.token) {
+              values.token = `user_${shortId.generate()}`
+            }
+            fn(null, values)
+          }
+        },
         classMethods: {
           //If you need associations, put them here
           associate: (models) => {
@@ -126,6 +137,10 @@ module.exports = class User extends Model {
 
   static schema(app, Sequelize) {
     return {
+      token: {
+        type: Sequelize.STRING,
+        unique: true
+      },
       // Username
       username: {
         type: Sequelize.STRING,

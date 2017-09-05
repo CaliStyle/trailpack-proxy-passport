@@ -20,6 +20,12 @@ module.exports = class PassportPolicy extends Policy {
     })*/
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
   jwt(req, res, next) {
     this.init(req, res, () => {
       this.app.services.PassportService.passport.authenticate('jwt', (error, user, info) => {
@@ -39,6 +45,48 @@ module.exports = class PassportPolicy extends Policy {
     })
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   * @returns {*}
+   */
+  basicAuth(req, res, next) {
+    this.init(req, res, () => {
+      const auth = req.headers.authorization
+
+      if (!auth || auth.search('Basic ') !== 0) {
+        return next()
+      }
+
+      const authString = new Buffer(auth.split(' ')[1], 'base64').toString()
+      const username = authString.split(':')[0]
+      const password = authString.split(':')[1]
+      const test = this.app.services.PassportService.validateEmail(username)
+      const fieldName = test ? 'email' : 'username'
+
+      this.app.log.silly('authenticating', username, 'using basic auth:', req.url)
+
+      this.app.services.PassportService.login(req, fieldName, username, password)
+        .then(user => {
+
+          req.user = user
+
+          return next()
+        })
+        .catch(err => {
+          return next(err)
+        })
+    })
+  }
+
+  /**
+   *
+   * @param req
+   * @param res
+   * @param next
+   */
   sessionAuth(req, res, next) {
     this.init(req, res, () => {
       // User is allowed, proceed to the next policy,

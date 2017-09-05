@@ -57,6 +57,11 @@ const App = {
         info(req, res){
           res.send('ok')
         }
+      },
+      TestBasicController: class DefaultController extends require('trails/controller') {
+        info(req, res){
+          res.send('ok')
+        }
       }
     }
   },
@@ -148,13 +153,24 @@ const App = {
     main: {
       packs: packs
     },
-    routes: [{
-      path: '/',
-      method: ['GET'],
-      handler: 'DefaultController.info'
-    }],
+    routes: [
+      {
+        path: '/',
+        method: ['GET'],
+        handler: 'DefaultController.info'
+      },
+      {
+        path: '/basic',
+        method: ['GET'],
+        handler: 'TestBasicController.info'
+      }
+    ],
     policies: {
-      DefaultController: ['Passport.jwt']
+      DefaultController: ['Passport.jwt'],
+      TestBasicController: ['Passport.basicAuth'],
+    },
+    log: {
+      logger: new smokesignals.Logger('debug')
     },
     session: {
       secret: 'ok'

@@ -330,13 +330,15 @@ module.exports = class PassportService extends Service {
 
   /**
    * Log a user and check password
+   * @param req
+   * @param fieldName
    * @param identifier of the user
    * @param password of the user
    * @returns {Promise} promise for next calls
    */
   login(req, fieldName, identifier, password) {
     const User = this.app.orm['User']
-    // const Passport = this.app.orm['Passport']
+    const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
     const criteria = {}
     // console.log('fieldName', fieldName)
     criteria[fieldName] = identifier.toLowerCase()
@@ -356,15 +358,12 @@ module.exports = class PassportService extends Service {
           throw new Error('E_USER_NO_PASSWORD')
         }
 
-        const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
-
         return new Promise((resolve, reject) => {
           this.app.config.proxyPassport.bcrypt.compare(password, passport.password, (err, valid) => {
             if (err) {
               return reject(err)
             }
             if (valid) {
-
               const event = {
                 object_id: user.id,
                 object: 'user',

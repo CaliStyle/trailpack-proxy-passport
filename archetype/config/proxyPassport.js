@@ -109,5 +109,9 @@ module.exports = {
       }
     }
     */
-  }
+  },
+  // Emails that are allowed to send
+  emails: {},
+  // Events to allow "publish"
+  events: {}
 }
