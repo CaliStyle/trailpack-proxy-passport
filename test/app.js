@@ -29,7 +29,7 @@ const stores = {
 
 if (ORM === 'sequelize') {
   packs.push(require('trailpack-sequelize'))
-  if (DIALECT == 'postgres') {
+  if (DIALECT === 'postgres') {
     stores.sqlitedev = {
       database: 'ProxyPassport',
       host: '127.0.0.1',
@@ -75,7 +75,7 @@ const App = {
     },
     proxyEngine: {
       live_mode: false,
-      worker: 'testProfile'
+      profile: 'testProfile'
     },
     proxyPassport: {
       onUserLogin: {
