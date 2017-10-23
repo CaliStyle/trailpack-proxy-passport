@@ -15,6 +15,7 @@ const packs = [
   require('trailpack-router'),
   require('trailpack-express'),
   require('trailpack-proxy-engine'),
+  require('trailpack-sequelize'),
   require('../') // trailpack-proxy-passport
 ]
 
@@ -27,22 +28,19 @@ const stores = {
   }
 }
 
-if (ORM === 'sequelize') {
-  packs.push(require('trailpack-sequelize'))
-  if (DIALECT === 'postgres') {
-    stores.sqlitedev = {
-      database: 'ProxyPassport',
-      host: '127.0.0.1',
-      dialect: 'postgres'
-    }
+if (DIALECT === 'postgres') {
+  stores.sqlitedev = {
+    database: 'ProxyPassport',
+    host: '127.0.0.1',
+    dialect: 'postgres'
   }
-  else {
-    stores.sqlitedev = {
-      database: 'ProxyPassport',
-      storage: './test/test.sqlite',
-      host: '127.0.0.1',
-      dialect: 'sqlite'
-    }
+}
+else {
+  stores.sqlitedev = {
+    database: 'ProxyPassport',
+    storage: './test/test.sqlite',
+    host: '127.0.0.1',
+    dialect: 'sqlite'
   }
 }
 
