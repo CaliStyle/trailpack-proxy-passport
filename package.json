@@ -40,6 +40,7 @@
     "passport": "^0.4.0",
     "pg": "^6.1.5",
     "proxy-engine-helpers": "^1.0.6",
+    "trailpack-proxy-email": "^2.0.0",
     "shortid": "^2.2.8",
     "trailpack": "2.1.2"
   },

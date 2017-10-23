@@ -15,6 +15,7 @@ const packs = [
   require('trailpack-router'),
   require('trailpack-express'),
   require('trailpack-proxy-engine'),
+  require('trailpack-proxy-email'),
   require('trailpack-sequelize'),
   require('../') // trailpack-proxy-passport
 ]
@@ -150,6 +151,10 @@ const App = {
     },
     main: {
       packs: packs
+    },
+    // Proxy Email
+    proxyEmail: {
+
     },
     routes: [
       {
