@@ -1,7 +1,7 @@
 {
   "name": "trailpack-proxy-passport",
-  "version": "2.1.0",
-  "description": "Trailpack to allow passport authentification to Proxy Engine application",
+  "version": "2.1.1",
+  "description": "Trailpack to allow passport authentification for Proxy Engine application",
   "homepage": "https://github.com/calistyle/trailpack-proxy-passport",
   "author": {
     "name": "Scott Wyatt",

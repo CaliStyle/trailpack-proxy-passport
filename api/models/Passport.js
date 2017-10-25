@@ -51,6 +51,9 @@ module.exports = class Passport extends Model {
            * @returns {Promise.<TResult>}
            */
           generateHash: function(password) {
+            if (!password) {
+              return Promise.resolve(this)
+            }
             return app.config.proxyPassport.bcrypt.hash(
               password,
               app.config.proxyPassport.bcrypt.genSaltSync(10)

@@ -147,6 +147,10 @@ const App = {
          clientSecret: 'your-client-secret'
          }
          }*/
+      },
+      // Emails that are allowed to send
+      emails: {
+        userRecovery: true
       }
     },
     main: {

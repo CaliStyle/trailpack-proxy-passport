@@ -111,7 +111,9 @@ module.exports = {
     */
   },
   // Emails that are allowed to send
-  emails: {},
+  emails: {
+    userRecovery: true
+  },
   // Events to allow "publish"
   events: {}
 }

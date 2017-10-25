@@ -147,6 +147,33 @@ module.exports = class User extends Model {
               })
           },
           /**
+           *
+           * @param options
+           */
+          sendResetEmail: function(options) {
+            options = options || {}
+            return app.emails.User.recovery(this, {
+              send_email: app.config.proxyPassport.emails.userRecovery
+            }, {
+              transaction: options.transaction || null
+            })
+              .then(email => {
+                return app.services.NotificationService.create(
+                  email,
+                  [this],
+                  {transaction: options.transaction || null}
+                )
+                  .then(notes => {
+                    app.log.debug('NOTIFY', this.id, this.email, this.users.map(u => u.id), email.send_email, notes.users.map(u => u.id))
+                    return notes
+                  })
+              })
+              .catch(err => {
+                app.log.error(err)
+                return
+              })
+          },
+          /**
            * Get's user's passports if not on DAO
            * @param options
            */

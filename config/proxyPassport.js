@@ -20,6 +20,8 @@ module.exports = {
   mergeThirdPartyProfile: (user, profile) => {
     return Promise.resolve(user)
   },
-  emails: {},
+  emails: {
+    userRecovery: true
+  },
   events: {}
 }
