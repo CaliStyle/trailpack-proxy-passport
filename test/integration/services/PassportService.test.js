@@ -13,13 +13,16 @@ describe('PassportService', () => {
     request
       .post('/auth/local/register')
       .set('Accept', 'application/json') //set header for this test
-      .send({username: 'jaumard', password: 'adminadmin', email: 'test@test.te'})
+      .send({
+        username: 'jaumard',
+        password: 'adminadmin',
+        email: 'test@test.te'
+      })
       .expect(200)
       .end((err, res) => {
-        // console.log('THIS USER',res.body)
         assert.equal(res.body.redirect, '/')
         assert.notEqual(res.body.user.id, null)
-        assert.ok(res.body.user.onUserLogin)
+        // assert.ok(res.body.user.onUserLogin)
         user = res.body.user
         token = res.body.token
         done(err)
@@ -34,11 +37,14 @@ describe('PassportService', () => {
     agent
       .post('/auth/local/register')
       .set('Accept', 'application/json') //set header for this test
-      .send({username: 'jim', password: 'adminadmin'})
+      .send({
+        username: 'jim',
+        password: 'adminadmin'
+      })
       .expect(200)
       .end((err, res) => {
         assert.equal(res.body.redirect, '/')
-        assert.notEqual(res.body.user.id,null)
+        assert.notEqual(res.body.user.id, null)
         assert.equal(res.body.user.username, 'jim')
         assert.ok(res.body.user.onUserLogin)
         done(err)
@@ -70,7 +76,6 @@ describe('PassportService', () => {
       .send({ password: 'adminNew'})
       .expect(200)
       .end((err, res) => {
-        // console.log('RESET', res.body)
         assert.notEqual(res.body.user.id, null)
         done(err)
       })
@@ -130,7 +135,7 @@ describe('PassportService', () => {
       })
       .expect(200)
       .end((err, res) => {
-//         console.log('THIS RECOVER', res.body)
+        console.log('THIS RECOVER',err, res.body)
         recovery = res.body.user.recovery
         assert.equal(res.body.redirect, '/')
         assert.equal(res.body.user.username, 'jim')
@@ -148,7 +153,7 @@ describe('PassportService', () => {
       })
       .expect(200)
       .end((err, res) => {
-        // console.log('THIS RECOVER', res.body)
+        // console.log('THIS RECOVER END', res.body)
         assert.equal(res.body.redirect, '/')
         assert.equal(res.body.user.username, 'jim')
         assert.equal()

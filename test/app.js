@@ -16,7 +16,7 @@ const packs = [
   require('trailpack-express'),
   require('trailpack-proxy-engine'),
   require('trailpack-proxy-email'),
-  require('trailpack-sequelize'),
+  require('trailpack-proxy-sequelize'),
   require('../') // trailpack-proxy-passport
 ]
 
@@ -82,7 +82,7 @@ const App = {
           if (user.passports) {
             delete user.passports
           }
-          user.dataValues.onUserLogin = true
+          user.setDataValue('onUserLogin', true)
           return Promise.resolve(user)
         }
       },
@@ -90,7 +90,7 @@ const App = {
         return Promise.resolve(user)
       },
       onUserRecover: (req, app, user) => {
-        // console.log('THIS RECOVER onUserRecover', user)
+        console.log('THIS RECOVER onUserRecover', user)
         // if (user.recovery) {
         //   delete user.recovery
         // }

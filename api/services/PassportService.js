@@ -138,12 +138,16 @@ module.exports = class PassportService extends Service {
 
   /**
    * Register the user
+   * @param req
    * @param userInfos
+   * @param options
    * @returns {*}
    */
-  register(req, userInfos) {
+  register(req, userInfos, options) {
+    options = options || {}
     const User = this.app.orm['User']
     const Passport = this.app.orm['Passport']
+
     if (userInfos.email) {
       userInfos.email = userInfos.email.toLowerCase()
     }
@@ -153,41 +157,56 @@ module.exports = class PassportService extends Service {
     if (userInfos.identifier) {
       userInfos.identifier = userInfos.identifier.toLowerCase()
     }
+
     const password = userInfos.password
     delete userInfos.password
 
-    if (!password) {
-      const err = new Error('E_VALIDATION')
-      err.statusCode = 400
-      return Promise.reject(err)
-    }
-
-    userInfos.passports = {
-      protocol: 'local',
-      password: password
-    }
-
-    return User.create(userInfos, {
-      include: [
-        {
-          model: Passport,
-          as: 'passports'
+    let resUser
+    return Promise.resolve()
+      .then(() => {
+        if (!password) {
+          const err = new Error('E_VALIDATION')
+          err.statusCode = 400
+          throw err
         }
-      ]
-    })
-      .then(user => {
+
+        userInfos.passports = {
+          protocol: 'local',
+          password: password
+        }
+
+        return User.create(userInfos, {
+          include: [
+            {
+              model: Passport,
+              as: 'passports'
+            }
+          ],
+          transaction: options.transaction || null
+        })
+      })
+      .then(_user => {
+        if (!_user) {
+          throw new Error('E_USER_NOT_CREATED')
+        }
+        resUser = _user
 
         const event = {
-          object_id: user.id,
+          object_id: resUser.id,
           object: 'user',
           objects: [{
-            user: user.id
+            user: resUser.id
           }],
           type: 'user.registered',
-          message: `User ${user.id} registered`,
-          data: user
+          message: `User ${resUser.getSalutation()} registered`,
+          data: resUser
         }
-        this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+        return this.app.services.ProxyEngineService.publish(event.type, event, {
+          save: true,
+          transaction: options.transaction || null
+        })
+      })
+      .then(event => {
 
         const onUserLogin = _.get(this.app, 'config.proxyPassport.onUserLogin')
         if (typeof onUserLogin === 'object') {
@@ -196,23 +215,23 @@ module.exports = class PassportService extends Service {
             promises.push(onUserLogin[func])
           })
           return Promise.all(promises.map(func => {
-            return func(req, this.app, user)
+            return func(req, this.app, resUser)
           }))
             .then(userAttrs => {
               userAttrs.map(u => {
-                user = _.extend(user, u)
+                resUser = _.extend(resUser, u)
               })
-              return Promise.resolve(user)
+              return Promise.resolve(resUser)
             })
             .catch(err => {
               return Promise.reject(err)
             })
         }
         else if (typeof onUserLogin === 'function') {
-          return Promise.resolve(onUserLogin(req, this.app, user))
+          return Promise.resolve(onUserLogin(req, this.app, resUser))
         }
         else {
-          return Promise.resolve(user)
+          return Promise.resolve(resUser)
         }
       })
   }
@@ -221,47 +240,47 @@ module.exports = class PassportService extends Service {
    * Update the local passport password of an user
    * @param user
    * @param password
+   * @param options
    * @returns {Promise}
    */
-  updateLocalPassword(user, password) {
+  updateLocalPassword(user, password, options) {
+    options = options || {}
     const User = this.app.orm['User']
-    // const Passport = this.app.orm['Passport']
-    return User.findByIdDefault(user.id)
-      .then(user => {
-        if (user) {
-          // user = user[0]
-          if (user.passports) {
-            const localPassport = user.passports.find(passportObj => passportObj.protocol === 'local')
-            if (localPassport) {
 
-              const event = {
-                object_id: user.id,
-                object: 'user',
-                objects: [{
-                  user: user.id
-                },{
-                  passport: localPassport.id
-                }],
-                type: 'user.password.updated',
-                message: `User ${user.id} password updated`,
-                data: user
-              }
-              this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
-
-              localPassport.password = password
-              return localPassport.save()
-            }
-            else {
-              throw new Error('E_NO_AVAILABLE_LOCAL_PASSPORT')
-            }
-          }
-          else {
-            throw new Error('E_NO_AVAILABLE_PASSPORTS')
-          }
-        }
-        else {
+    let resUser
+    return User.resolve(user, {transaction: options.transaction || null})
+      .then(_user => {
+        if (!_user) {
           throw new Error('E_USER_NOT_FOUND')
         }
+        resUser = _user
+        return resUser.resolvePassports({transaction: options.transaction || null})
+      })
+      .then(() => {
+        if (!resUser.passports || resUser.passports.length === 0) {
+          throw new Error('E_NO_AVAILABLE_PASSPORTS')
+        }
+        const localPassport = resUser.passports.find(passportObj => passportObj.protocol === 'local')
+        if (!localPassport) {
+          throw new Error('E_NO_AVAILABLE_LOCAL_PASSPORT')
+        }
+
+        const event = {
+          object_id: resUser.id,
+          object: 'user',
+          objects: [{
+            user: resUser.id
+          },{
+            passport: localPassport.id
+          }],
+          type: 'user.password.updated',
+          message: `User ${resUser.getSalutation()} password updated`,
+          data: _.omit(user,['events'])
+        }
+        this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
+
+        localPassport.password = password
+        return localPassport.save({transaction: options.transaction || null})
       })
   }
 
@@ -274,31 +293,47 @@ module.exports = class PassportService extends Service {
    *
    * @param {Object}   user
    * @param {Object}   password
+   * @param {Object}   options
    * @returns Promise to chain calls
    */
-  connect(user, password) {
+  connect(user, password, options) {
+    options = options || {}
+
     const Passport = this.app.orm['Passport']
     const User = this.app.orm['User']
 
-    return Passport.findOne({
-      protocol: 'local',
-      user: user.id
-    })
+    let resUser
+    return User.resolve(user, {transaction: options.transaction || null})
+      .then(_user => {
+        if (!_user) {
+          throw new Error('E_USER_NOT_FOUND')
+        }
+        resUser = _user
+        return Passport.findOne({
+          where: {
+            protocol: 'local',
+            user: resUser.id
+          },
+          transaction: options.transaction || null
+        })
+      })
       .then(passport => {
         if (!passport) {
           return Passport.create({
             protocol: 'local',
             password: password,
-            user: user.id
+            user: resUser.id
           }, {
             include: [
               {
                 model: User,
                 required: true
               }
-            ]
+            ],
+            transaction: options.transaction || null
           })
         }
+        return passport
       })
   }
 
@@ -315,16 +350,16 @@ module.exports = class PassportService extends Service {
 
     query.user = user.id
     query[provider === 'local' ? 'protocol' : 'provider'] = provider
-    return Passport.findOne(query)
+    return Passport.findOne({
+      where: query
+    })
       .then(passport => {
-        if (passport) {
-          return passport.destroy()
-          .then(passport => next(null, user))
-        }
-        else {
+        if (!passport) {
           throw new Error('E_USER_NO_PASSWORD')
         }
+        return passport.destroy()
       })
+      .then(passport => next(null, user))
       .catch(next)
   }
 
@@ -343,70 +378,80 @@ module.exports = class PassportService extends Service {
     // console.log('fieldName', fieldName)
     criteria[fieldName] = identifier.toLowerCase()
 
-    return User.findOneDefault({
-      where: criteria
-    })
-      .then(user => {
-        if (!user) {
+    let reqUser
+    return Promise.resolve()
+      .then(() => {
+        if (!fieldName) {
+          throw new Error('E_FIELD_NAME_NOT_SPECIFIED')
+        }
+        return User.findOne({
+          where: criteria
+        })
+      })
+      .then(_user => {
+        if (!_user) {
           throw new Error('E_USER_NOT_FOUND')
         }
-        // user = user[0]
+        reqUser = _user
 
-        const passport = user.passports.find(passportObj => passportObj.protocol === 'local')
+        return reqUser.resolvePassports()
+      })
+      .then(() => {
+
+        const passport = reqUser.passports.find(passportObj => passportObj.protocol === 'local')
 
         if (!passport) {
           throw new Error('E_USER_NO_PASSWORD')
         }
 
-        return new Promise((resolve, reject) => {
-          this.app.config.proxyPassport.bcrypt.compare(password, passport.password, (err, valid) => {
-            if (err) {
-              return reject(err)
-            }
-            if (valid) {
-              const event = {
-                object_id: user.id,
-                object: 'user',
-                objects: [{
-                  user: user.id
-                }],
-                type: 'user.login',
-                message: `User ${user.id} logged in`,
-                data: user
-              }
-              this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
-
-              if (typeof onUserLogin === 'object') {
-                const promises = []
-                Object.keys(onUserLogin).forEach(func => {
-                  promises.push(onUserLogin[func])
-                })
-
-                Promise.all(promises.map(func => {
-                  return func(req, this.app, user)
-                }))
-                  .then(userAttrs => {
-                    userAttrs.map(u => {
-                      user = _.extend(user, u)
-                    })
-                    return resolve(user)
-                  })
-                  .catch(err => {
-                    return reject(err)
-                  })
-              }
-              else if (typeof onUserLogin === 'function') {
-                return resolve(Promise.resolve(onUserLogin(req, this.app, user)))
-              }
-              else {
-                return resolve(user)
-              }
-            }
-            else {
-              return reject(new Error('E_WRONG_PASSWORD'))
-            }
+        return passport.validatePassword(password)
+          .catch(err => {
+            throw new Error('E_WRONG_PASSWORD')
           })
+      })
+      .then(valid => {
+        if (!valid) {
+          throw new Error('E_WRONG_PASSWORD')
+        }
+
+        const event = {
+          object_id: reqUser.id,
+          object: 'user',
+          objects: [{
+            user: reqUser.id
+          }],
+          type: 'user.login',
+          message: `User ${reqUser.id} logged in`,
+          data: _.omit(reqUser, ['events'])
+        }
+        return this.app.services.ProxyEngineService.publish(event.type, event, {
+          save: true
         })
+      })
+      .then(event => {
+        if (typeof onUserLogin === 'function') {
+          return onUserLogin(req, this.app, reqUser)
+        }
+        else if (typeof onUserLogin === 'object') {
+          const promises = []
+
+          Object.keys(onUserLogin).forEach(func => {
+            promises.push(onUserLogin[func])
+          })
+
+          return Promise.all(promises.map(func => {
+            return func(req, this.app, reqUser)
+          }))
+            .then(userAttrs => {
+              userAttrs.map(u => {
+                reqUser = _.extend(reqUser, u)
+              })
+              return reqUser
+            })
+        }
+        else {
+          return reqUser
+        }
       })
   }
 
@@ -454,66 +499,60 @@ module.exports = class PassportService extends Service {
     const User = this.app.orm['User']
     const criteria = {}
 
-    let id
-    let fieldName
+    let resUser, localPassport, id, fieldName
 
-    if (body['username']) {
-      id = 'username'
-      fieldName = 'username'
-    }
-    else if (body['email']) {
-      id = 'email'
-      fieldName = 'email'
-    }
-    else if (body['identifier']) {
-      const test = this.validateEmail(body['identifier'])
-      id = test ? 'email' : 'username'
-      fieldName = 'identifier'
-    }
-    else {
-      const err = new Error('No username or email field')
-      err.code = 'E_VALIDATION'
-      throw err
-    }
+    return Promise.resolve()
+      .then(() => {
+        if (body['username']) {
+          id = 'username'
+          fieldName = 'username'
+        }
+        else if (body['email']) {
+          id = 'email'
+          fieldName = 'email'
+        }
+        else if (body['identifier']) {
+          const test = this.validateEmail(body['identifier'])
+          id = test ? 'email' : 'username'
+          fieldName = 'identifier'
+        }
+        else {
+          const err = new Error('No username or email field')
+          err.code = 'E_VALIDATION'
+          throw err
+        }
 
-    criteria[id] = body[fieldName].toLowerCase()
+        criteria[id] = body[fieldName].toLowerCase()
 
-    let resUser, localPassport
-    return User.findOneDefault({
-      where: criteria,
-      transaction: options.transaction || null
-    })
-      .then(foundUser => {
-        if (!foundUser) {
+        return User.findOne({
+          where: criteria,
+          transaction: options.transaction || null
+        })
+      })
+      .then(_user => {
+        if (!_user) {
           throw new Error('E_USER_NOT_FOUND')
         }
-        resUser = foundUser
+        resUser = _user
         return resUser.resolvePassports({transaction: options.transaction || null})
       })
       .then(() => {
-        if (resUser.passports) {
-          localPassport = resUser.passports.find(passportObj => passportObj.protocol === 'local')
-          if (localPassport) {
-            return new Promise((resolve, reject) => {
-              this.app.config.proxyPassport.bcrypt.hash(body[fieldName], 10, (err, hash) => {
-                if (err) {
-                  // console.log(err)
-                  return reject('E_VALIDATION')
-                }
-                resUser.recovery = hash
-                return resolve(resUser)
-              })
-            })
-          }
-          else {
-            throw new Error('E_NO_AVAILABLE_LOCAL_PASSPORT')
-          }
-        }
-        else {
+        if (!resUser.passports || resUser.passports.length === 0) {
           throw new Error('E_NO_AVAILABLE_PASSPORTS')
         }
+
+        localPassport = resUser.passports.find(passportObj => passportObj.protocol === 'local')
+
+        if (!localPassport) {
+          throw new Error('E_NO_AVAILABLE_LOCAL_PASSPORT')
+        }
+
+        return resUser.generateRecovery(body[fieldName].toLowerCase())
+          .catch(err => {
+            throw new Error('E_VALIDATION_HASH')
+          })
       })
-      .then(() => {
+      .then(hash => {
         return resUser.save({
           transaction: options.transaction || null
         })
@@ -528,8 +567,8 @@ module.exports = class PassportService extends Service {
             passport: localPassport.id
           }],
           type: 'user.password.recover',
-          message: `User ${resUser.id} requested to recover password`,
-          data: resUser
+          message: `User ${resUser.getSalutation()} requested to recover password`,
+          data: _.omit(resUser, ['events'])
         }
         return this.app.services.ProxyEngineService.publish(event.type, event, {
           save: true,
@@ -590,6 +629,7 @@ module.exports = class PassportService extends Service {
     options = options || {}
     // console.log('THIS RECOVER onRecover', user)
     const onUserRecovered = _.get(this.app, 'config.proxyPassport.onUserRecovered')
+
     if (typeof onUserRecovered === 'object') {
       const promises = []
       Object.keys(onUserRecovered).forEach(func => {
@@ -623,21 +663,36 @@ module.exports = class PassportService extends Service {
    */
   reset(user, password, options) {
     options = options || {}
-    if (!user){
-      throw new Error('E_USER_NOT_FOUND')
-    }
-    return this.updateLocalPassword(user, password)
+    const User = this.app.orm['User']
+
+    let resUser
+    return Promise.resolve()
+      .then(() => {
+        if (!user) {
+          throw new Error('E_USER_NOT_DEFINED')
+        }
+        return User.resolve(user, {transaction: options.transaction || null})
+      })
+      .then(_user => {
+        if (!_user) {
+          throw new Error('E_USER_NOT_FOUND')
+        }
+        resUser = _user
+        return this.updateLocalPassword(resUser, password, {
+          transaction: options.transaction || null
+        })
+      })
       .then(passport => {
         const event = {
-          object_id: user.id,
+          object_id: resUser.id,
           object: 'user',
           objects: [{
-            user: user.id
+            user: resUser.id
           }, {
             passport: passport.id
           }],
           type: 'user.password.reset',
-          message: `User ${user.id} password was reset`,
+          message: `User ${resUser.getSalutation()} password was reset`,
           data: passport
         }
         return this.app.services.ProxyEngineService.publish(event.type, event, {
@@ -646,7 +701,7 @@ module.exports = class PassportService extends Service {
         })
       })
       .then(event => {
-        return user
+        return resUser
       })
   }
 
@@ -660,47 +715,57 @@ module.exports = class PassportService extends Service {
   resetRecover(req, body, options) {
     options = options || {}
     const User = this.app.orm['User']
-    if (!body.recovery){
-      throw new Error('E_USER_NOT_FOUND')
-    }
-    if (!body.password){
-      throw new Error('E_VALIDATION')
-    }
 
-    return User.findOne({
-      where: {
-        recovery: body.recovery
-      },
-      transaction: options.transaction || null
-    })
-      .then(user => {
-        if (!user) {
+    let resUser
+    return Promise.resolve()
+      .then(() => {
+        if (!body.recovery){
+          throw new Error('E_USER_RECOVERY_NOT_DEFINED')
+        }
+        if (!body.password){
+          throw new Error('E_VALIDATION')
+        }
+
+        return User.findOne({
+          where: {
+            recovery: body.recovery
+          },
+          transaction: options.transaction || null
+        })
+      })
+      .then(_user => {
+        if (!_user) {
           throw new Error('E_USER_NOT_FOUND')
         }
-        return this.updateLocalPassword(user, body.password)
-          .then(passport => {
-            const event = {
-              object_id: user.id,
-              object: 'user',
-              objects: [{
-                user: user.id
-              },{
-                passport: passport.id
-              }],
-              type: 'user.password.reset',
-              message: `User ${ user.id } password was reset`,
-              data: passport
-            }
-            this.app.services.ProxyEngineService.publish(event.type, event, {
-              save: true,
-              transaction: options.transaction || null
-            })
+        resUser = _user
 
-            return user
-          })
-          .then(user => {
-            return this.onRecovered(req, user, options)
-          })
+        return this.updateLocalPassword(resUser, body.password, {
+          transaction: options.transaction || null
+        })
+      })
+      .then(passport => {
+        if (!passport) {
+          throw new Error('E_PASSPORT_NOT_UPDATED')
+        }
+        const event = {
+          object_id: resUser.id,
+          object: 'user',
+          objects: [{
+            user: resUser.id
+          }, {
+            passport: passport.id
+          }],
+          type: 'user.password.reset',
+          message: `User ${ resUser.getSalutation() } password was reset`,
+          data: passport
+        }
+        return this.app.services.ProxyEngineService.publish(event.type, event, {
+          save: true,
+          transaction: options.transaction || null
+        })
+      })
+      .then(event => {
+        return this.onRecovered(req, resUser, options)
       })
   }
 }

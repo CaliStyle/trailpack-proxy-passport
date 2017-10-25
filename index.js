@@ -10,24 +10,24 @@ module.exports = class ProxyPassportTrailpack extends Trailpack {
    */
   validate() {
     if (!_.includes(_.keys(this.app.packs), 'express')) {
-      return Promise.reject(new Error('This Trailpack work only for express !'))
+      return Promise.reject(new Error('This Trailpack currently only works with express!'))
     }
 
-    if (!_.includes(_.keys(this.app.packs), 'sequelize')) {
-      return Promise.reject(new Error('This Trailpack work only with sequelize!'))
+    if (!_.includes(_.keys(this.app.packs), 'proxy-sequelize')) {
+      return Promise.reject(new Error('This Trailpack currently only works with trailpack-proxy-sequelize!'))
     }
 
     if (!this.app.config.proxyPassport) {
-      return Promise.reject(new Error('No configuration found at config.proxyPassport !'))
+      return Promise.reject(new Error('No configuration found at config.proxyPassport!'))
     }
 
     const strategies = this.app.config.proxyPassport.strategies
-    if (!strategies || (strategies && Object.keys(strategies).length == 0)) {
-      return Promise.reject(new Error('No strategies found at config.proxyPassport.strategies !'))
+    if (!strategies || (strategies && Object.keys(strategies).length === 0)) {
+      return Promise.reject(new Error('No strategies found at config.proxyPassport.strategies!'))
     }
 
     if (strategies.jwt && _.get(this.app, 'config.proxyPassport.jwt.tokenOptions.secret') === 'mysupersecuretoken') {
-      return Promise.reject(new Error('You need to change the default token !'))
+      return Promise.reject(new Error('You need to change the default token!'))
     }
 
     return Promise.all([
@@ -41,6 +41,7 @@ module.exports = class ProxyPassportTrailpack extends Trailpack {
   configure() {
     lib.ProxyPassport.init(this.app)
     lib.ProxyPassport.loadStrategies(this.app)
+    lib.ProxyPassport.copyDefaults(this.app)
     lib.ProxyPassport.addRoutes(this.app)
   }
 

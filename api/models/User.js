@@ -1,4 +1,5 @@
 /* eslint new-cap: [0] */
+/* eslint no-console: [0] */
 'use strict'
 
 const Model = require('trails/model')
@@ -20,12 +21,11 @@ module.exports = class User extends Model {
       options: {
         underscored: true,
         hooks: {
-          beforeCreate: function(values, options, fn) {
+          beforeCreate: (values, options) => {
             // If not token was already created, create it
             if (!values.token) {
               values.token = `user_${shortId.generate()}`
             }
-            fn(null, values)
           }
         },
         classMethods: {
@@ -57,7 +57,7 @@ module.exports = class User extends Model {
           resolve: function(user, options){
             options = options || {}
             const User = this
-            if (user instanceof User.Instance){
+            if (user instanceof User){
               return Promise.resolve(user)
             }
             else if (user && _.isObject(user) && user.id) {
@@ -111,12 +111,52 @@ module.exports = class User extends Model {
         },
         instanceMethods: {
           /**
+           *
+           * @param options
+           * @returns {string}
+           */
+          getSalutation: function(options) {
+            options = options || {}
+
+            let salutation = 'Customer'
+
+            if (this.username) {
+              salutation = this.username
+            }
+            else if (this.email) {
+              salutation = this.email
+            }
+            else {
+              salutation = this.id
+            }
+            return salutation
+          },
+          /**
+           *
+           * @param val
+           * @returns {Promise.<TResult>}
+           */
+          generateRecovery: function(val) {
+            return app.config.proxyPassport.bcrypt.hash(
+              val,
+              app.config.proxyPassport.bcrypt.genSaltSync(10)
+            )
+              .then(hash => {
+                this.recovery = hash
+                return this
+              })
+          },
+          /**
            * Get's user's passports if not on DAO
            * @param options
            */
           resolvePassports: function(options) {
             options = options || {}
-            if (this.passports) {
+            if (
+              this.passports
+              && this.passports.every(t => t instanceof app.orm['Passport'])
+              && options.reload !== true
+            ) {
               return Promise.resolve(this)
             }
             else {

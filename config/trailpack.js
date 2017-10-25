@@ -28,7 +28,7 @@ module.exports = {
        * method is invoked on this Trailpack
        */
       listen: [
-        'trailpack:sequelize:configured',
+        'trailpack:proxy-sequelize:configured',
         'trailpack:proxy-engine:configured'
       ],
 
@@ -41,7 +41,7 @@ module.exports = {
     },
     initialize: {
       listen: [
-        'trailpack:sequelize:initialized',
+        'trailpack:proxy-sequelize:initialized',
         'trailpack:proxy-engine:initialized'
       ],
       emit: [

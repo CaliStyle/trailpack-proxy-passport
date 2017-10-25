@@ -5,7 +5,11 @@ const Controller = require('trails/controller')
 // const _ = require('lodash')
 
 module.exports = class AuthController extends Controller {
-
+  /**
+   *
+   * @param req
+   * @param res
+   */
   provider(req, res) {
     this.app.services.PassportService.endpoint(req, res, req.params.provider)
       .catch(e => {
@@ -13,19 +17,32 @@ module.exports = class AuthController extends Controller {
       })
   }
 
+  /**
+   *
+   * @param req
+   * @param res
+   */
   callback(req, res) {
     this.app.services.PassportService.callback(req, res, (err, user, challenges, statuses) => {
       if (err) {
+        console.log('CALLBACK ERROR',err)
         if (err.message === 'E_USER_NOT_FOUND') {
           req.err = err
           res.notFound(req, res)
         }
-        else if (err.message === 'E_VALIDATION' || err.message === 'passport.initialize() middleware not in use' ) {
+        else if (
+          err.message === 'E_VALIDATION'
+          || err.message === 'E_USER_NOT_DEFINED'
+          || err.message === 'E_USER_RECOVERY_NOT_DEFINED'
+          || err.message === 'passport.initialize() middleware not in use'
+        ) {
           res.status(400).json({error: err.message || err})
         }
-        else if (err === 'Not a valid BCrypt hash.' ||
-          err.message === 'E_WRONG_PASSWORD' ||
-          err.message === 'E_USER_NO_PASSWORD') {
+        else if (
+          err === 'Not a valid BCrypt hash.'
+          || err.message === 'E_WRONG_PASSWORD'
+          || err.message === 'E_USER_NO_PASSWORD'
+        ) {
           res.status(401).json({error: err.message || err})
         }
         else {
@@ -114,13 +131,23 @@ module.exports = class AuthController extends Controller {
         }
       })
   }
+
+  /**
+   *
+   * @param req
+   * @param res
+   */
   recover(req, res) {
     let redirect = this.app.config.proxyPassport.redirect.recover
     if (req.body.redirect || req.query.redirect) {
       redirect = req.body.redirect || req.query.redirect
     }
+
     this.app.services.PassportService.recover(req, req.body)
       .then((user) => {
+        if (!user) {
+          // err.message === 'E_USER_NOT_FOUND'
+        }
         // console.log('THIS RECOVER',user)
         if (req.wantsJSON) {
           res.json({
