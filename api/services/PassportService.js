@@ -275,7 +275,7 @@ module.exports = class PassportService extends Service {
           }],
           type: 'user.password.updated',
           message: `User ${resUser.getSalutation()} password updated`,
-          data: _.omit(user,['events'])
+          data: resUser
         }
         this.app.services.ProxyEngineService.publish(event.type, event, {save: true})
 
@@ -413,7 +413,6 @@ module.exports = class PassportService extends Service {
         if (!valid) {
           throw new Error('E_WRONG_PASSWORD')
         }
-
         const event = {
           object_id: reqUser.id,
           object: 'user',
@@ -422,7 +421,7 @@ module.exports = class PassportService extends Service {
           }],
           type: 'user.login',
           message: `User ${reqUser.id} logged in`,
-          data: _.omit(reqUser, ['events'])
+          data: reqUser
         }
         return this.app.services.ProxyEngineService.publish(event.type, event, {
           save: true
@@ -568,7 +567,7 @@ module.exports = class PassportService extends Service {
           }],
           type: 'user.password.recover',
           message: `User ${resUser.getSalutation()} requested to recover password`,
-          data: _.omit(resUser, ['events'])
+          data: resUser
         }
         return this.app.services.ProxyEngineService.publish(event.type, event, {
           save: true,

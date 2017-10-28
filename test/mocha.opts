@@ -1,9 +1,9 @@
-./test/index.js
-./test/**/*.test.js
 --reporter spec
 --timeout 120000
 --recursive
 --full-trace
 --slow 50
 --check-leaks
---globals app
+--globals app,__coverage__,__core-js_shared__
+
+test/index.js test/**/*.test.js

@@ -97,10 +97,10 @@ module.exports = class PassportPolicy extends Policy {
       else {
         // User is not allowed
         if (req.wantsJSON) {
-          res.status(401).json({logout: this.app.config.proxyPassport.redirect.logout})
+          res.status(401).json({logout: this.app.config.get('proxyPassport.redirect.logout')})
         }
         else {
-          res.redirect(this.app.config.proxyPassport.redirect.logout)
+          res.redirect(this.app.config.get('proxyPassport.redirect.logout'))
         }
       }
     })

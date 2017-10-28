@@ -118,7 +118,7 @@ module.exports = class User extends Model {
           getSalutation: function(options) {
             options = options || {}
 
-            let salutation = 'Customer'
+            let salutation = 'User'
 
             if (this.username) {
               salutation = this.username

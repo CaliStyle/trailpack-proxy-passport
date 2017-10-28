@@ -25,7 +25,6 @@ module.exports = class AuthController extends Controller {
   callback(req, res) {
     this.app.services.PassportService.callback(req, res, (err, user, challenges, statuses) => {
       if (err) {
-        console.log('CALLBACK ERROR',err)
         if (err.message === 'E_USER_NOT_FOUND') {
           req.err = err
           res.notFound(req, res)

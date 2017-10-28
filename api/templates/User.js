@@ -4,6 +4,15 @@
 const Template = require('trailpack-proxy-email').Template
 
 module.exports = class User extends Template {
+  registered(user) {
+    return `<h1>Welcome</h1>
+<p>Dear ${user.getSalutation() || 'User'},</p>
+<p>
+  Thank you for creating your account!
+</p>
+<p>Thank you!</p>`
+  }
+
   recover(user) {
     return `<h1>Password Recovery</h1>
 <p>Dear ${user.getSalutation() || 'User'},</p>

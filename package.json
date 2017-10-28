@@ -1,6 +1,6 @@
 {
   "name": "trailpack-proxy-passport",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Trailpack to allow passport authentification for Proxy Engine application",
   "homepage": "https://github.com/calistyle/trailpack-proxy-passport",
   "author": {
@@ -51,6 +51,7 @@
     "passport-jwt": "^2.1.0",
     "passport-local": "^1.0.0",
     "pg": "^6.4.2",
+    "nyc": "^11.0.2",
     "sails-disk": "^0.10.10",
     "smokesignals": "^2.0.0",
     "snyk": "1.25.2",
@@ -59,12 +60,12 @@
     "trailpack-express": "^2.0.3",
     "trailpack-proxy-engine": "^2.1.0",
     "trailpack-router": "^2.1.0",
-    "trailpack-proxy-sequelize": "^2.0.0-beta",
+    "trailpack-proxy-sequelize": "^2.1.0",
     "trails": "^2.0.2"
   },
   "scripts": {
     "snyk-auth": "snyk auth $SNYK_TOKEN",
-    "test": "eslint --fix . && mocha"
+    "test": "eslint --fix . && nyc mocha"
   },
   "engines": {
     "node": ">= 4.0.0"
