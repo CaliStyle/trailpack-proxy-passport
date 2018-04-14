@@ -41,6 +41,7 @@ module.exports = class Passport extends Model {
           associate: (models) => {
             models.Passport.belongsTo(models.User, {
               //
+              foreignKey: 'user_id'
             })
           }
         },
@@ -102,6 +103,9 @@ module.exports = class Passport extends Model {
 
   static schema(app, Sequelize) {
     return {
+      user_id: {
+        type: Sequelize.INTEGER
+      },
       protocol: {
         type: Sequelize.STRING,
         validate: {

@@ -169,4 +169,26 @@ module.exports = class AuthController extends Controller {
         }
       })
   }
+
+  /**
+   * The session of the user logged in
+   * @param req
+   * @param res
+   */
+  session (req, res) {
+    if (req.user) {
+      const user = req.user
+      if (user.passports) {
+        delete user.passports
+      }
+      const token = this.app.services.PassportService.createToken(user)
+      return res.json({
+        token: token,
+        user: user
+      })
+    }
+    else {
+      return res.sendStatus(401)
+    }
+  }
 }
